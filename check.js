@@ -65,6 +65,29 @@ check('a positive ledger row is a credit, not a spend', bal('NC | Chielo').adjus
 check('the balance cap still applies', bal('NC | Capped').balance, RULES.balance_cap);
 check('earned is never silently capped', bal('NC | Capped').earned, 9000);
 
+console.log('\nAP_LISTINGS rows');
+// `const` declared inside eval does not escape it, so hand these back explicitly.
+const { LISTING_HEAD, stamp } = new Function(
+  grab('const LISTING_HEAD', '\nfunction writeRows') + '; return {LISTING_HEAD, stamp};')();
+const fixedItem = RULES.items.find(i => i.method === 'fixed');
+const auctionItem = RULES.items.find(i => i.method !== 'fixed');
+const row = it => [
+  'posted', it.channel || it.name, 1, it.method, (it.price ?? i.min_bid ?? it.min_per_unit),
+  'closes', 'open', '', ''
+];
+check('a row has one cell per header column', row(fixedItem).length, LISTING_HEAD.length);
+check('the header is the one the sheet expects',
+  LISTING_HEAD.join('\t'), 'posted\titem\tqty\tmethod\tprice_or_min\tcloses\tstatus\twinner\tfinal_ap');
+check('a timestamp is a format Sheets reads as a datetime',
+  /^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(stamp(new Date(2026, 9, 4, 9, 5))), true);
+check('midnight does not lose its padding', stamp(new Date(2026, 0, 1, 0, 0)), '2026-01-01 00:00');
+check('every sellable item has something to put in the item column',
+  RULES.items.filter(i => !(i.channel || i.name)).length, 0);
+check('an auction closes on the clock, a fixed price waits longer',
+  RULES.auction_rules.duration_hours < RULES.fixed_price_rules.unclaimed_after_hours, true);
+check('no item key contains a tab or newline that would break the paste',
+  RULES.items.filter(i => /[\t\n]/.test(i.channel || i.name)).length, 0);
+
 console.log('\nQuantities');
 eval(grab('function readQty', '\nasync function readScreenshot'));
 check('x before the number', readQty('Blessing Stone x15'), 15);

@@ -210,6 +210,12 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     font-family:var(--mono); font-size:12.5px; line-height:1.55; padding:13px; resize:vertical}
   .out-bar{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px}
   .out-bar span{font-family:var(--mono); font-size:11px; color:var(--faint)}
+  .out + .out{border-top:1px solid var(--line)}
+  .olbl{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase;
+    color:var(--faint); display:block; margin-bottom:8px}
+  .olbl code{font-size:10.5px; letter-spacing:0}
+  .rowhint{margin:-2px 0 10px; font-size:12.5px; color:var(--dim); max-width:62ch}
+  #rows-text{white-space:pre; overflow-x:auto}
 
   footer{padding-block:34px 0; border-top:1px solid var(--line); color:var(--faint); font-size:13px}
 
@@ -345,12 +351,22 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
       </div>
       <div class="picks" id="picks"></div>
       <div class="out">
-        <label for="post-text" class="lbl" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">The post</label>
-        <textarea id="post-text" spellcheck="false" style="margin-top:8px"></textarea>
+        <label for="post-text" class="olbl">1 &middot; The Discord post</label>
+        <textarea id="post-text" spellcheck="false"></textarea>
         <div class="out-bar">
           <button type="button" class="btn go" id="copy-post">Copy post</button>
           <button type="button" class="btn" id="reset-post">Clear all</button>
           <span id="copy-note"></span>
+        </div>
+      </div>
+      <div class="out">
+        <label for="rows-text" class="olbl">2 &middot; Rows for <code>AP_LISTINGS</code></label>
+        <p class="rowhint">Copy, click the first empty cell under <code>posted</code>, paste. Tab-separated, so it lands in the right columns. <code>status</code> starts as <code>open</code>; fill <code>winner</code> and <code>final_ap</code> when it closes.</p>
+        <textarea id="rows-text" spellcheck="false" style="min-height:120px"></textarea>
+        <div class="out-bar">
+          <button type="button" class="btn go" id="copy-rows">Copy rows</button>
+          <button type="button" class="btn" id="copy-head">Copy header row</button>
+          <span id="rows-note"></span>
         </div>
       </div>
     </div>
@@ -666,6 +682,41 @@ function writePost(){
 
   L.push('', 'AP cannot be transferred. Balances: ' + location.origin + location.pathname);
   ta.value = L.join('\n');
+  writeRows(picked);
+}
+
+const LISTING_HEAD = ['posted','item','qty','method','price_or_min','closes','status','winner','final_ap'];
+
+// Sheets splits a pasted cell on tabs, so tab-separated rows drop straight into the
+// right columns. Times are "YYYY-MM-DD HH:MM", which Sheets reads as a real datetime.
+const stamp = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-'
+  + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0')
+  + ':' + String(d.getMinutes()).padStart(2,'0');
+
+function writeRows(picked){
+  const ta = document.getElementById('rows-text');
+  if(!picked || !picked.length){
+    ta.value = '';
+    ta.placeholder = LISTING_HEAD.join('\t');
+    return;
+  }
+  const now = new Date();
+  const posted = stamp(now);
+  const plus = h => stamp(new Date(now.getTime() + h * 3600 * 1000));
+
+  ta.value = picked.map(it => [
+    posted,
+    it.channel || it.name,
+    QTY[it.name],
+    it.method,
+    itemCost(it),
+    // Fixed items sit until someone claims them; auctions close on the clock.
+    it.method === 'fixed' ? plus(RULES.fixed_price_rules.unclaimed_after_hours)
+                          : plus(RULES.auction_rules.duration_hours),
+    'open',
+    '',
+    '',
+  ].join('\t')).join('\n');
 }
 
 function setPick(i, qty){
@@ -762,19 +813,31 @@ function wireBuilder(){
     }
     document.getElementById('ocr-note').hidden = true;
     document.getElementById('copy-note').textContent = '';
+    document.getElementById('rows-note').textContent = '';
+    writeRows([]);
   };
 
-  document.getElementById('copy-post').onclick = async () => {
-    const ta = document.getElementById('post-text'), note = document.getElementById('copy-note');
-    if(!ta.value){ note.textContent = 'Nothing ticked yet.'; return; }
+  // Clipboard access is refused in some app views, so always leave the text selected
+  // as a fallback rather than telling someone it copied when it did not.
+  const copier = (id, noteId, text, done) => async () => {
+    const ta = document.getElementById(id), note = document.getElementById(noteId);
+    const value = text ? text() : ta.value;
+    if(!value){ note.textContent = 'Nothing ticked yet.'; return; }
     try{
-      await navigator.clipboard.writeText(ta.value);
-      note.textContent = 'Copied. Paste it into Discord.';
+      await navigator.clipboard.writeText(value);
+      note.textContent = done;
     }catch(e){
-      ta.select();
-      note.textContent = 'Selected \u2014 press Ctrl+C.';
+      if(!text){ ta.select(); note.textContent = 'Selected \u2014 press Ctrl+C.'; }
+      else note.textContent = 'Could not copy \u2014 ' + value;
     }
   };
+
+  document.getElementById('copy-post').onclick =
+    copier('post-text', 'copy-note', null, 'Copied. Paste it into Discord.');
+  document.getElementById('copy-rows').onclick =
+    copier('rows-text', 'rows-note', null, 'Copied. Paste under the posted column.');
+  document.getElementById('copy-head').onclick =
+    copier('rows-text', 'rows-note', () => LISTING_HEAD.join('\t'), 'Header copied. Paste into row 1.');
 }
 
 
@@ -1023,6 +1086,7 @@ function capWarning(n){
   buildStatic();
   buildPicks();
   wireBuilder();
+  writeRows([]);
 
   const applyAll = v => { for(const [k,e] of Object.entries(RULES.events)) STATE[k] = v ? e.per_week : 0;
     for(const tr of document.querySelectorAll('#earn-table tbody tr')) tr.querySelector('input').value = STATE[tr.dataset.key];

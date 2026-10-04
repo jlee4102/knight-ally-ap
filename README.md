@@ -39,6 +39,14 @@ Debits and credits are summed **separately**. Netting them first makes a correct
 
 Auction winners pay their own bid, which no rules file can know, so `ap` is authoritative and `item` is only the link back to the loot board.
 
+### AP_LISTINGS
+
+`posted | item | qty | method | price_or_min | closes | status | winner | final_ap`
+
+The loot post builder writes these rows tab-separated. Copy, click the first empty cell under `posted`, paste — Sheets splits on tabs into the right columns. Times are `YYYY-MM-DD HH:MM`, which Sheets reads as real datetimes. `closes` is 24 h for an auction and 48 h for a fixed-price claim, both taken from `ap_rules.json`. Fill `winner` and `final_ap` by hand when it closes, then add the matching `AP_LEDGER` deduction.
+
+Nothing reads this tab yet — it is the record of what was posted. Reading it back would give the live loot board.
+
 ### Known gaps
 
 - Nothing writes to the sheet from the page; officers edit `AP_LEDGER` directly.
