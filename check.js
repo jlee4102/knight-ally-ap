@@ -43,17 +43,27 @@ check('empty line is ignored', hit(''), null);
 check('a near-miss between two similar items is refused rather than guessed',
   hit('Arcane Scroll'), null);
 
-console.log('\nYear inference');
-eval(grab('function yearsFor', '\nfunction readSheet'));
-// The real column order on PAYROLL - PASAHOD: July through to the following May,
-// crossing New Year once in the middle. The sheet never writes the year down.
-const SEQ = ['7/7-7/20', '9/29-10/19', '10/20-11/3', '12/29-01/11', '01/12 - 01/25', '04/20-05/03'];
-const ys = yearsFor(SEQ);
-check('the newest period is never dated into the future', new Date(ys[ys.length - 1], 3, 20) <= new Date(), true);
-check('December falls a year before the January after it', ys[3] < ys[4], true);
-check('periods inside one calendar run share a year', ys[1] === ys[2], true);
-check('this run spans exactly two years', new Set(ys).size, 2);
-check('a lone date with no range still gets a year', yearsFor(['8/24']).length, 1);
+console.log('\nBalances');
+// One eval: a const declared in its own eval call does not leak to the next one.
+eval(grab('const EARN_COLUMNS', '\nconst tabUrl') + grab('const headerIndex', '\n// Every row Chielo closes'));
+const RECORDS = [
+  ['Discord ID', 'Player Name', 'Crusade AP', 'World Dungeon AP', 'Total AP'],
+  ['1', 'NC | Chielo', '390', '50', '440'],
+  ['2', 'NC | J0bee', '130', '0', '130'],
+  ['3', 'NC | Capped', '9000', '0', '9000'],
+];
+const LEDGER = [
+  ['date', 'member', 'item', 'qty', 'ap', 'note'],
+  ['2026-10-12', 'NC | Chielo', 'aura-stones', '1', '-300', 'won auction'],
+  ['2026-10-13', 'NC | Chielo', '', '', '25', 'logger missed Crusade'],
+];
+const bal = n => readMembers(RECORDS, LEDGER).find(m => m.name === n);
+check('earning with no ledger rows leaves the balance untouched', bal('NC | J0bee').balance, 130);
+check('a purchase comes off the balance', bal('NC | Chielo').balance, 440 - 300 + 25);
+check('spent is reported as a positive number', bal('NC | Chielo').spent, 300);
+check('a positive ledger row is a credit, not a spend', bal('NC | Chielo').adjusted, 25);
+check('the balance cap still applies', bal('NC | Capped').balance, RULES.balance_cap);
+check('earned is never silently capped', bal('NC | Capped').earned, 9000);
 
 console.log('\nQuantities');
 eval(grab('function readQty', '\nasync function readScreenshot'));

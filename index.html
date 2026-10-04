@@ -225,6 +225,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 <div class="wrap">
   <nav class="bar">
     <a href="#standings">Standings</a>
+    <a href="#events">Check-ins</a>
     <a href="#week">This week</a>
     <a href="#earn">Earning</a>
     <a href="#loot">Loot prices</a>
@@ -257,14 +258,21 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   <section id="standings">
     <h2>Standings</h2>
     <p class="sub" id="standings-sub">Loading the roster…</p>
-    <div class="stand-bar">
-      <label for="period">Period</label>
-      <select id="period" disabled><option>Loading…</option></select>
-      <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
-    </div>
+    <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
     <div class="scroll" style="margin-top:14px">
       <table id="roster-table">
-        <thead><tr><th style="width:56px" class="num">#</th><th>Member</th><th class="num">Cave</th><th class="num">WD</th><th class="num">AP</th></tr></thead>
+        <thead><tr><th style="width:56px" class="num">#</th><th>Member</th><th class="num">Earned</th><th class="num">Spent</th><th class="num">Balance</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="events">
+    <h2>Latest check-ins</h2>
+    <p class="sub">Straight from Chielo, newest first. Turnout is the number who checked in — that is what the caves bonus tiers are scored on.</p>
+    <div class="scroll">
+      <table id="events-table">
+        <thead><tr><th class="num">When</th><th>Event</th><th>Result</th><th class="num">Turnout</th><th class="num">AP each</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -350,11 +358,10 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 
   <details class="fold" id="setup">
     <summary>Where the numbers come from</summary>
-    <p class="sub">Nothing is typed twice. The Chielo bot closes each boss check-in in Discord, the totals are entered on the alliance loot sheet, and this page reads that sheet and does the AP arithmetic.</p>
     <div class="note">
-      <p style="margin:0 0 10px"><strong>New fortnight?</strong> Nothing to do. A new column on the sheet joins the Period dropdown on its own, and the page opens on the newest one. Currently reading <code id="code-ex">—</code>.</p>
-      <p style="margin:0 0 10px"><strong>Other guilds</strong> on the sheet carry a tag like <code>[Horde]</code> or <code>[DM]</code>; Jollibee members have none, which is how this page tells them apart. Set <code>GUILD_TAG</code> in <code>index.html</code> to show a different guild, or to <code>'ALL'</code> for the whole alliance.</p>
-      <p style="margin:0">Only Cave and WD have columns on the sheet. Crusade, GvG, Guild Dungeon and Epic Dungeon pay AP in the rules but are not counted in standings until they get a column — and because the sheet holds a fortnight total rather than a row per kill, caves turnout tiers cannot be applied. Every kill pays the flat rate.</p>
+      <p style="margin:0 0 10px"><strong>Earning is automatic.</strong> Chielo writes every closed check-in to the guild AP sheet — one row per event with its turnout, plus a running AP total per member. This page reads those tabs; nobody types a point in.</p>
+      <p style="margin:0 0 10px"><strong>Spending is not.</strong> An officer adds a row to <code>AP_LEDGER</code> when someone wins an item: <code>date</code>, <code>member</code>, <code>item</code>, <code>qty</code>, <code>ap</code>, <code>note</code>. <code>ap</code> is negative for a purchase or a void, positive for a correction. Balance is what Chielo credited minus what the ledger took away, capped at <span id="cap-ref">—</span>.</p>
+      <p style="margin:0">Fixed-price items always cost their listed price, but an auction winner pays their own bid — so the <code>ap</code> column is what counts, and <code>item</code> links the row to the loot board for checking.</p>
     </div>
   </details>
 
@@ -364,28 +371,29 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 </div>
 
 <script>
-const SHEET_ID = '1kMqBmOm21dVIgKlrqdwgMr2FilfNVaz4x1nsegV-FJQ';
-// Where the Chielo check-ins are tallied. Row 1 names each fortnight, row 2 marks
-// which of its columns is the attendance count. Nothing here changes per period —
-// the page reads the rightmost period of each kind, so a new column just works.
-const PERIOD_TAB = 'PAYROLL - PASAHOD';
-// gviz can address a tab by name but silently truncates this one at ~90 columns,
-// so address it by gid, which returns all 143.
-const PERIOD_GID = '1028363311';
-const ATT = 'Att';
+// The Chielo bot writes straight into this sheet: a row per event it closes, and a
+// running AP total per member. Officers add deductions to AP_LEDGER by hand.
+const SHEET_ID = '10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0';
 
-// The alliance sheet lists every guild on one tab: other guilds carry a [TAG]
-// prefix, Jollibee members do not. Set to null to show the whole alliance.
-const GUILD_TAG = null;
+// Small tabs, so address them by name — that survives anyone reordering the sheet.
+const TAB_RECORDS = 'AP Records';
+const TAB_EVENTS  = 'Event Logs';
+const TAB_LEDGER  = 'AP_LEDGER';
 
-// Period-column prefix -> the rules event it pays at.
-const COLUMNS = [
-  {prefix:'Cave', event:'caves_boss', short:'Cave'},
-  {prefix:'WD',   event:'world_boss', short:'WD'},
+// Columns on AP Records, mapped to the events in the rules file.
+const EARN_COLUMNS = [
+  {header:'Crusade AP',          event:'crusade_dominion'},
+  {header:'Guild vs Guild AP',   event:'gvg'},
+  {header:'Guild Dungeon AP',    event:'guild_dungeon'},
+  {header:'Epic Dungeon AP',     event:'epic_dungeon'},
+  {header:'World Dungeon AP',    event:'world_boss'},
+  {header:'Cave Boss AP',        event:'caves_boss'},
+  {header:'Region Boss AP',      event:'region_boss'},
 ];
 
-const tabUrl = () =>
-  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${PERIOD_GID}`;
+const tabUrl = name =>
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/gviz/tq?tqx=out:csv&sheet=${encodeURIComponent(name)}`;
+
 
 function parseCSV(t){
   const rows=[[]]; let f='', q=false;
@@ -539,7 +547,7 @@ function buildLoot(baseline){
 
     const weeks = el('td','num', (cost/baseline).toFixed(2));
     if(ME){
-      const bal = Math.min(ME.earned, RULES.balance_cap);
+      const bal = ME.balance;
       if(cost <= bal){ tr.classList.add('afford'); weeks.appendChild(el('span','tick','yours now')); }
       else weeks.appendChild(el('span','tick no', fmt(cost-bal)+' AP short'));
     }
@@ -809,7 +817,7 @@ function setMe(name){
   body.hidden = !ME;
   if(ME){
     const rank = ROSTER.indexOf(ME) + 1;
-    const bal = Math.min(ME.earned, RULES.balance_cap);
+    const bal = ME.balance;
     const can = RULES.items.filter(it => (it.price ?? it.min_bid ?? it.min_per_unit) <= bal).length;
     const cell = (k, v, n, plain) => {
       const c = el('div','me-cell');
@@ -818,10 +826,13 @@ function setMe(name){
       if(n) c.appendChild(el('span','n',n));
       body.appendChild(c);
     };
-    cell('Your AP', fmt(bal), ME.earned > RULES.balance_cap ? fmt(ME.earned)+' earned, capped' : 'this period');
-    cell('Rank', '#'+rank, 'of '+ROSTER.length+' in Jollibee');
-    for(const c of COLUMNS) cell(c.short+' check-ins', fmt(ME.att[c.event]||0), fmt((ME.att[c.event]||0) * RULES.events[c.event].base_ap)+' AP');
-    cell('You can afford', can+' of '+RULES.items.length, 'items on the loot board', true);
+    cell('Balance', fmt(bal), ME.spent ? fmt(ME.earned) + ' earned, ' + fmt(ME.spent) + ' spent' : 'nothing spent yet');
+    cell('Rank', '#' + rank, 'of ' + ROSTER.length);
+    const top = EARN_COLUMNS
+      .map(c => ({label: RULES.events[c.event].label.replace(/ *\(.*\)/, ''), ap: ME.att[c.event] || 0}))
+      .sort((a, b) => b.ap - a.ap)[0];
+    if(top && top.ap) cell('Most AP from', fmt(top.ap), top.label, true);
+    cell('You can afford', can + ' of ' + RULES.items.length, 'items on the loot board', true);
   }
   refresh();
   renderRoster(document.getElementById('search').value);
@@ -852,10 +863,13 @@ function renderRoster(filter){
     const nm = el('td', null, m.name);
     if(ME && m.name === ME.name){ nm.style.color='var(--gold)'; nm.style.fontWeight='600'; tr.style.background='var(--raise)'; }
     tr.appendChild(nm);
-    for(const c of COLUMNS) tr.appendChild(el('td','num', fmt(m.att[c.event] || 0)));
-    const capped = Math.min(m.earned, RULES.balance_cap);
-    const td = el('td','num ap', fmt(capped));
-    if(m.earned > RULES.balance_cap){ td.title = fmt(m.earned)+' AP earned, capped at '+fmt(RULES.balance_cap); td.style.color='var(--crimson)'; }
+    tr.appendChild(el('td','num', fmt(m.earned)));
+    const sp = el('td','num', m.spent ? '\u2212' + fmt(m.spent) : '0');
+    if(m.spent) sp.style.color = 'var(--crimson)';
+    tr.appendChild(sp);
+    const td = el('td','num ap', fmt(m.balance));
+    if(m.earned + m.adjusted - m.spent > RULES.balance_cap)
+      td.title = fmt(m.earned - m.spent + m.adjusted) + ' AP, capped at ' + fmt(RULES.balance_cap);
     tr.appendChild(td);
     tb.appendChild(tr);
   });
@@ -867,112 +881,124 @@ function renderRoster(filter){
 //
 // Cave and WD are picked by matching date range, never independently: "WD 8/24" has
 // no Cave twin, and pairing the newest of each would mix two different fortnights.
-// Period labels on the sheet carry no year ("Cave 04/20-05/03"), and the columns
-// cross a new year twice. They are chronological left to right, so anchor the newest
-// one to the latest year that does not put it in the future, then walk back: moving
-// left, a start month that jumps forward means we stepped over a New Year.
-function yearsFor(ranges){
-  const parse = r => { const m = r.match(/(\d{1,2})\s*\/\s*(\d{1,3})/); return m ? {mo:+m[1], d:+m[2]} : null; };
-  const parts = ranges.map(parse);
-  const years = new Array(ranges.length).fill(null);
-  const today = new Date();
-  let y = today.getFullYear();
-  const last = parts[parts.length - 1];
-  if(last && new Date(y, last.mo - 1, Math.min(last.d, 28)) > today) y--;
-  for(let i = parts.length - 1; i >= 0; i--){
-    if(parts[i] && i < parts.length - 1 && parts[i+1] && parts[i].mo > parts[i+1].mo) y--;
-    years[i] = y;
-  }
-  return years;
+const headerIndex = (head, name) => head.findIndex(c => c.trim().toLowerCase() === name.toLowerCase());
+const toNum = v => Number(String(v || '').replace(/[^0-9.\-]/g, '')) || 0;
+
+function rowObjects(rows){
+  if(!rows.length) return [];
+  const head = rows[0].map(c => c.trim());
+  return rows.slice(1)
+    .filter(r => r.some(c => c.trim()))
+    .map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || '').trim()])));
 }
 
-function readSheet(rows){
-  const h = rows.findIndex(r => r.some(c => /^(IGN|Name)$/i.test(c.trim())));
-  if(h < 0) throw new Error('no IGN column');
-  const period = rows[h].map(c => c.trim());
-  for(let i=1;i<period.length;i++) if(!period[i]) period[i] = period[i-1];
-  const sub = (rows[h+1] || []).map(c => c.trim());
-  const nameAt = period.findIndex(c => /^(IGN|Name)$/i.test(c));
-
-  const order = [], byRange = new Map();
-  for(let j=0;j<period.length;j++){
-    if(sub[j] !== ATT) continue;
-    const col = COLUMNS.find(c => period[j].startsWith(c.prefix + ' '));
-    if(!col) continue;
-    const range = period[j].slice(col.prefix.length).trim();
-    if(!byRange.has(range)){ byRange.set(range, []); order.push(range); }
-    byRange.get(range).push({...col, j});
+// Chielo keeps a running AP total per member; officers record every deduction,
+// void and correction in AP_LEDGER. Balance is one minus the other, capped.
+function readMembers(recordRows, ledgerRows){
+  // Keep debits and credits apart. Netting them first makes a correction look like
+  // a discount on the thing someone bought, and "spent" stops matching the ledger.
+  const out = new Map(), inn = new Map(), count = new Map();
+  for(const r of rowObjects(ledgerRows)){
+    const who = r.member;
+    if(!who) continue;
+    const ap = toNum(r.ap);
+    if(ap < 0) out.set(who, (out.get(who) || 0) - ap);
+    else       inn.set(who, (inn.get(who) || 0) + ap);
+    count.set(who, (count.get(who) || 0) + 1);
   }
 
-  const body = rows.slice(h+2).filter(r => (r[nameAt]||'').trim());
-  const num = v => Number((v||'').replace(/[^0-9.]/g,'')) || 0;
+  const head = recordRows.length ? recordRows[0].map(c => c.trim()) : [];
+  const nameAt = headerIndex(head, 'Player Name');
+  const cols = EARN_COLUMNS.map(c => ({...c, i: headerIndex(head, c.header)}));
 
-  // A half-entered column is worse than no column: it would show most of the guild
-  // on zero and read as "nobody turned up". Require a real number of entries.
-  const MIN_ENTRIES = 5;
-  const periods = order.filter(range =>
-    body.filter(r => byRange.get(range).some(c => num(r[c.j]) > 0)).length >= MIN_ENTRIES);
-  if(!periods.length) throw new Error('no period has attendance filled in');
-  const years = yearsFor(periods);
-  const dated = range => range + ' ' + years[periods.indexOf(range)];
-
-  const membersFor = range => {
-    const cols = byRange.get(range), seen = new Set();
-    return body.map(r => {
-      const name = (r[nameAt]||'').trim();
-      if(seen.has(name)) return null;
-      seen.add(name);
-      const tag = (name.match(/^\[([^\]]+)\]/) || [,null])[1];
-      if(GUILD_TAG !== 'ALL' && tag !== GUILD_TAG) return null;
-      const att = {}; let earned = 0;
-      for(const c of COLUMNS) att[c.event] = 0;
-      for(const c of cols){
-        const n = num(r[c.j]);
-        att[c.event] = n;
-        earned += n * RULES.events[c.event].base_ap;
-      }
-      return {name, att, earned};
-    }).filter(Boolean);
-  };
-
-  return {periods, membersFor, dated, kinds: range => byRange.get(range).map(c => c.short)};
+  const seen = new Set();
+  return recordRows.slice(1).map(r => {
+    const name = (r[nameAt] || '').trim();
+    if(!name || seen.has(name)) return null;
+    seen.add(name);
+    const att = {};
+    let earned = 0;
+    for(const c of cols){
+      const ap = c.i < 0 ? 0 : toNum(r[c.i]);
+      att[c.event] = ap;
+      earned += ap;
+    }
+    const spent = out.get(name) || 0, adjusted = inn.get(name) || 0;
+    return {
+      name, att, earned, spent, adjusted,
+      entries: count.get(name) || 0,
+      balance: Math.min(earned + adjusted - spent, RULES.balance_cap),
+    };
+  }).filter(Boolean);
 }
 
-let SHEET = null;
-
-function showPeriod(range){
-  ROSTER = SHEET.membersFor(range);
-  ROSTER.sort((a,b) => b.earned - a.earned || a.name.localeCompare(b.name));
-  const logged = ROSTER.filter(m => m.earned > 0).length;
-  const newest = range === SHEET.periods[SHEET.periods.length-1];
-  document.getElementById('standings-sub').textContent =
-    `${ROSTER.length} Jollibee members. Showing ${SHEET.kinds(range).join(' and ')} attendance for ${SHEET.dated(range)}`
-    + `, ${logged} with check-ins. `
-    + (newest ? 'This is the most recent period filled in on the sheet.' : 'Newer periods exist on the sheet.');
-  document.getElementById('code-ex').textContent = SHEET.dated(range);
-
-  const over = ROSTER.filter(m => m.earned > RULES.balance_cap).length;
-  if(over > ROSTER.length/4) capWarning(over);
-
-  const me = ME && ME.name;
-  fillPicker();
-  if(me) setMe(me); else { refresh(); renderRoster(document.getElementById('search').value); }
+// Every row Chielo closes, newest first. Participant Count is the turnout the
+// alliance spreadsheet never recorded, which is what the caves bonus tiers need.
+function readEvents(rows){
+  return rowObjects(rows)
+    .filter(r => r.Date)
+    .map(r => ({
+      when: r.Date,
+      event: r.Event,
+      result: r.Result,
+      each: toNum(r['AP Per Player']),
+      base: toNum(r['Base AP']),
+      bonus: toNum(r['Win Bonus']),
+      turnout: toNum(r['Participant Count']),
+      who: r.Participants || '',
+    }))
+    .reverse();
 }
+
+let EVENTS = [];
 
 async function loadRoster(){
+  const sub = document.getElementById('standings-sub');
+  const grab = async name => parseCSV(await (await fetch(tabUrl(name))).text());
   try{
-    SHEET = readSheet(parseCSV(await (await fetch(tabUrl())).text()));
-    const sel = document.getElementById('period');
-    sel.textContent = '';
-    [...SHEET.periods].reverse().forEach(r => { sel.appendChild(el('option', null, SHEET.dated(r))).value = r; });
-    sel.value = SHEET.periods[SHEET.periods.length-1];
-    sel.onchange = () => showPeriod(sel.value);
-    sel.disabled = false;
-    showPeriod(sel.value);
+    const [records, ledger, events] = await Promise.all(
+      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS].map(grab));
+
+    ROSTER = readMembers(records, ledger);
+    ROSTER.sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
+    EVENTS = readEvents(events);
+
+    const spent = ROSTER.reduce((n, m) => n + m.entries, 0);
+    sub.textContent = `${ROSTER.length} members, ${EVENTS.length} events logged by Chielo`
+      + (spent ? `, ${spent} ledger entries applied.` : '. No deductions recorded yet.');
+
+    buildEvents();
+    fillPicker();
+    refresh();
+    renderRoster(document.getElementById('search').value);
   }catch(err){
-    document.getElementById('standings-sub').textContent =
-      'Could not read attendance from the sheet (' + err.message + '). Check the tab is still shared as "anyone with the link".';
+    sub.textContent = 'Could not read the AP sheet (' + err.message
+      + '). Check it is still shared as "anyone with the link".';
     renderRoster('');
+  }
+}
+
+function buildEvents(){
+  const tb = document.querySelector('#events-table tbody');
+  if(!tb) return;
+  tb.textContent = '';
+  if(!EVENTS.length){
+    const tr = el('tr'), td = el('td', null, 'Nothing logged yet.');
+    td.colSpan = 5; td.style.color = 'var(--faint)'; tr.appendChild(td); tb.appendChild(tr);
+    return;
+  }
+  for(const e of EVENTS.slice(0, 15)){
+    const tr = el('tr');
+    tr.appendChild(el('td','num', e.when.replace(/:\d\d$/, '')));
+    tr.appendChild(el('td', null, e.event));
+    const res = el('td');
+    res.appendChild(el('span', 'chip ' + (/win/i.test(e.result) ? 'pve' : 'pvp'), e.result || '—'));
+    tr.appendChild(res);
+    tr.appendChild(el('td','num', String(e.turnout)));
+    const ap = el('td','num ap', fmt(e.each));
+    if(e.bonus) ap.appendChild(el('span','ev-note', fmt(e.base) + ' + ' + fmt(e.bonus) + ' win'));
+    tr.appendChild(ap);
+    tb.appendChild(tr);
   }
 }
 
@@ -981,8 +1007,8 @@ async function loadRoster(){
 function capWarning(n){
   const w = el('div','warn');
   w.appendChild(el('b','Rates need a look'));
-  w.appendChild(el('span', null, `${n} members are over the ${fmt(RULES.balance_cap)} cap for this period alone. `
-    + `The sheet counts attendance far faster than the per-week limits in the rules assume, so either the AP rates per kill are too high or a "Cave Att" is not one boss. Settle that before the first loot post.`));
+  w.appendChild(el('span', null, `${n} members are sitting on the ${fmt(RULES.balance_cap)} cap. `
+    + `AP above it is not credited, so they are earning nothing until they spend. Either the loot is priced too low or the cap is too tight.`));
   document.getElementById('drift').appendChild(w);
 }
 
@@ -991,6 +1017,7 @@ function capWarning(n){
   document.getElementById('t-full').textContent  = fmt(baselineWeek());
   document.getElementById('t-sched').textContent = fmt(scheduledWeek());
   document.getElementById('t-cap').textContent   = fmt(RULES.balance_cap);
+  document.getElementById('cap-ref').textContent = fmt(RULES.balance_cap) + ' AP';
   checkDrift();
   buildEarnTable();
   buildStatic();
