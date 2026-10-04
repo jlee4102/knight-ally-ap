@@ -37,6 +37,41 @@ The sheet stores a fortnight total per member, not a row per kill, so the caves 
 
 Spending is also not tracked yet. Standings show AP earned this period; claims and bids are settled by officers in Discord.
 
+## Maintaining this
+
+### Layout
+
+`index.html` is the whole site — one file, no build step, no dependencies. Top to bottom:
+
+1. `<style>` — design tokens on `:root`, then components. Colours are tokens (`--gold`, `--crimson`, `--sage`, …); never hard-code a hex in a component.
+2. Markup — each `<section>` is one block of the page. Tables are empty shells; script fills them.
+3. `<script>` — constants, then AP maths, then render functions, then an IIFE at the bottom that wires it together.
+
+The script has no framework and touches the DOM directly. Keep it that way unless something genuinely needs more.
+
+### The parts you'll actually change
+
+| Want to | Do this |
+| --- | --- |
+| Change an AP rate or item price | Edit `ap_rules.json`. Nothing in the HTML. |
+| Add an event to standings | Add `{prefix:'Crusade', event:'crusade_dominion', short:'Crusade'}` to `COLUMNS`, and make sure the sheet has a `Crusade …` period column with `Att` under it. |
+| Show a different guild | `GUILD_TAG` — `null` for Jollibee, `'Horde'`, `'DM'`, or `'ALL'`. |
+| Point at a different sheet | `SHEET_ID` and `PERIOD_GID`. |
+| Change the look | The `:root` token block. Both the palette and the three font roles live there. |
+
+### Gotchas worth knowing before you touch it
+
+- **`ap_rules.json` is the single source of numbers.** The page reads it at runtime. If you find yourself typing a number into the HTML, it belongs in the JSON instead.
+- **There is a built-in check.** On load the page asserts a full week of activity comes to 1,086 AP and scheduled-only to 575. Break either and a red banner appears at the top of the live site. Don't delete the check — fix the numbers.
+- **Address the sheet tab by gid, not by name.** The `gviz` endpoint takes a tab name but silently truncates this sheet at ~90 columns, and the attendance columns are past that. `export?format=csv&gid=` returns all 143.
+- **The sheet's header is two rows.** Row 1 names the period, row 2 marks `Att` / `Pay`, and merged cells leave the period name on its first column only — hence the forward-fill in `readPeriod`. Don't "simplify" that away.
+- **`localStorage` only remembers which member you picked.** Every read and write is in a try/catch and the page works without it. Don't put anything that matters in there.
+- **GitHub Pages caches for about ten minutes.** After a push, add `?v=2` to the URL to see your change immediately.
+
+### Deploying
+
+Push to `main`. Pages rebuilds on its own; there's no action to run and nothing to configure. Check the Actions tab if a deploy looks stuck.
+
 ## Running it locally
 
 `index.html` fetches `ap_rules.json`, which browsers block over `file://`. Serve the folder instead:
