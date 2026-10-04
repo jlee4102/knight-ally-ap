@@ -1,6 +1,6 @@
-# Knight Ally Activity Points
+# Jollibee Activity Points
 
-The Activity Point (AP) site for the Night Crows guild **102 Knight Ally**, union UDI.
+The Activity Point (AP) site for the Night Crows guild **Jollibee**, alliance 102 Knight Ally, union UDI.
 
 Live: https://jlee4102.github.io/knight-ally-ap/
 
@@ -19,20 +19,23 @@ Edit `ap_rules.json` and commit. That's the whole job.
 
 The page self-checks on load: a full week of activity must come to **1,086 AP** and scheduled-only to **575 AP**. If an edit moves either figure, a red banner appears at the top of the site telling you prices were set against the old number. That is intentional — don't suppress it, fix the prices.
 
-## Turning on balances
+## Where standings come from
 
-Standings currently show the roster at zero. To make them live:
+The `PAYROLL - PASAHOD` tab of the alliance loot sheet. Its header is two rows: row 1 names each fortnight (`Cave 04/20-05/03`), row 2 marks which of its columns is the attendance count (`Att`). The page carries the period name across merged cells, takes the **rightmost** `Att` column of each kind, and multiplies by that event's `base_ap`.
 
-1. Add a tab to a Google Sheet you own with the columns
-   `date | member | code | qty | turnout`
-   - `member` — the IGN, matching the roster
-   - `code` — an event key from `ap_rules.json` (`crusade_dominion`, `gvg`, `caves_boss`, …) for a credit, or an item's Discord channel for a purchase
-   - `qty` — how many
-   - `turnout` — headcount at the kill, for caves and region bonuses; blank otherwise
-2. Share the sheet as "anyone with the link can view".
-3. In `index.html`, set `SHEET_ID` and `LEDGER_GID` near the top of the `<script>`.
+A new fortnight needs no code change — a new column shows up on its own.
 
-One row per credit, void or purchase. The page does the AP arithmetic from the rules file, so the sheet never holds a number that can go stale — it stays an audit trail.
+Three constants at the top of the `<script>` control it:
+
+- `PERIOD_GID` — the tab. Addressed by gid, not by name: the `gviz` endpoint can address tabs by name but silently truncates this one at ~90 columns, and the attendance is past that.
+- `COLUMNS` — which column prefix pays at which rules event. Only `Cave` and `WD` exist on the sheet today; Crusade, GvG, Guild Dungeon and Epic Dungeon pay AP in the rules but are not in standings until they get a column.
+- `GUILD_TAG` — `null` shows Jollibee (members with no `[TAG]` prefix). Use `'Horde'`, `'DM'`, or `'ALL'` for the whole alliance.
+
+### Known gap
+
+The sheet stores a fortnight total per member, not a row per kill, so the caves turnout tiers in `ap_rules.json` cannot be applied — every kill pays the flat 12 AP. Fixing that means recording the headcount on each Chielo check-in, not just the total.
+
+Spending is also not tracked yet. Standings show AP earned this period; claims and bids are settled by officers in Discord.
 
 ## Running it locally
 

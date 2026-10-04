@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Knight Ally Activity Points</title>
+<title>Jollibee Activity Points</title>
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
 <style>
 html{color-scheme:dark;background:#0e1017}body{margin:0}
@@ -143,9 +143,9 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 
 <div class="wrap">
   <header class="crest">
-    <div class="tag"><span>102 Knight Ally</span><span class="sep">/</span><span>Union UDI</span><span class="sep">/</span><span>Night Crows</span></div>
+    <div class="tag"><span>Jollibee</span><span class="sep">/</span><span>102 Knight Ally</span><span class="sep">/</span><span>Union UDI</span></div>
     <h1>Activity Points<em>Show up. Earn. Claim the vault.</em></h1>
-    <p class="lede">Every guild event you check in to pays AP. AP is the only currency for guild-storage loot — fixed-price claims and 24-hour auctions, one loot post a week after the Guild Dungeon run.</p>
+    <p class="lede">Every Jollibee event you check in to pays AP. AP is the only currency for guild-storage loot — fixed-price claims and 24-hour auctions, one loot post a week after the Guild Dungeon run.</p>
   </header>
 
   <div id="drift"></div>
@@ -202,7 +202,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
     <div class="scroll" style="margin-top:14px">
       <table id="roster-table">
-        <thead><tr><th style="width:56px" class="num">#</th><th>Member</th><th class="num">Earned</th><th class="num">Spent</th><th class="num">Balance</th></tr></thead>
+        <thead><tr><th style="width:56px" class="num">#</th><th>Member</th><th class="num">Cave</th><th class="num">WD</th><th class="num">AP</th></tr></thead>
         <tbody></tbody>
       </table>
     </div>
@@ -217,12 +217,12 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   </section>
 
   <section id="setup">
-    <h2>Wiring up balances</h2>
-    <p class="sub">Standings read a Google Sheet tab directly — no bot, no server, no login. Add a tab with these five columns and the numbers above start filling in.</p>
+    <h2>Where the numbers come from</h2>
+    <p class="sub">Nothing is typed twice. The Chielo bot closes each boss check-in in Discord, the totals are entered on the alliance loot sheet, and this page reads that sheet and does the AP arithmetic.</p>
     <div class="note">
-      <p style="margin:0 0 10px"><strong>Columns:</strong> <code>date</code> · <code>member</code> · <code>code</code> · <code>qty</code> · <code>turnout</code></p>
-      <p style="margin:0 0 10px"><code>member</code> matches the IGN in the roster. <code>code</code> is an event key (<code id="code-ex">—</code>) or an item's Discord channel for a purchase. <code>qty</code> is how many, <code>turnout</code> is the headcount for caves and region kills — leave it blank otherwise.</p>
-      <p style="margin:0">One row per credit, void or purchase. The page does the AP arithmetic from the rules file, so the sheet never holds a stale number and the ledger stays an audit trail.</p>
+      <p style="margin:0 0 10px"><strong>New fortnight?</strong> Nothing to do. The page takes the rightmost <code>Att</code> column of each kind, so a new period column appears here on its own. Currently reading <code id="code-ex">—</code>.</p>
+      <p style="margin:0 0 10px"><strong>Other guilds</strong> on the sheet carry a tag like <code>[Horde]</code> or <code>[DM]</code>; Jollibee members have none, which is how this page tells them apart. Set <code>GUILD_TAG</code> in <code>index.html</code> to show a different guild, or to <code>'ALL'</code> for the whole alliance.</p>
+      <p style="margin:0">Only Cave and WD have columns on the sheet. Crusade, GvG, Guild Dungeon and Epic Dungeon pay AP in the rules but are not counted in standings until they get a column — and because the sheet holds a fortnight total rather than a row per kill, caves turnout tiers cannot be applied. Every kill pays the flat rate.</p>
     </div>
   </section>
 
@@ -233,12 +233,27 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 
 <script>
 const SHEET_ID = '1kMqBmOm21dVIgKlrqdwgMr2FilfNVaz4x1nsegV-FJQ';
-const ROSTER_GID = '1028363311';
-const ROSTER_COL = 1, ROSTER_SKIP = 3;
-// ponytail: no ledger tab exists yet, so balances read 0. Set the gid and they go live.
-const LEDGER_GID = null;
+// Where the Chielo check-ins are tallied. Row 1 names each fortnight, row 2 marks
+// which of its columns is the attendance count. Nothing here changes per period —
+// the page reads the rightmost period of each kind, so a new column just works.
+const PERIOD_TAB = 'PAYROLL - PASAHOD';
+// gviz can address a tab by name but silently truncates this one at ~90 columns,
+// so address it by gid, which returns all 143.
+const PERIOD_GID = '1028363311';
+const ATT = 'Att';
 
-const csvUrl = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+// The alliance sheet lists every guild on one tab: other guilds carry a [TAG]
+// prefix, Jollibee members do not. Set to null to show the whole alliance.
+const GUILD_TAG = null;
+
+// Period-column prefix -> the rules event it pays at.
+const COLUMNS = [
+  {prefix:'Cave', event:'caves_boss', short:'Cave'},
+  {prefix:'WD',   event:'world_boss', short:'WD'},
+];
+
+const tabUrl = () =>
+  `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${PERIOD_GID}`;
 
 function parseCSV(t){
   const rows=[[]]; let f='', q=false;
@@ -413,7 +428,7 @@ function buildStatic(){
   const dl = document.getElementById('rulelist');
   for(const [k,v] of pairs){ dl.appendChild(el('dt',null,k)); dl.appendChild(el('dd',null,v)); }
 
-  document.getElementById('code-ex').textContent = Object.keys(RULES.events).slice(0,3).join(', ')+', …';
+  // filled in once the sheet has been read
 }
 
 // Self-check: the rules file must still produce the two headline figures the system was designed around.
@@ -442,30 +457,81 @@ function renderRoster(filter){
     const tr = el('tr');
     tr.appendChild(el('td','num', String(i+1)));
     tr.appendChild(el('td', null, m.name));
-    tr.appendChild(el('td','num', fmt(m.earned)));
-    tr.appendChild(el('td','num', m.spent ? '−'+fmt(m.spent) : '0'));
-    const bal = el('td','num ap', fmt(Math.min(m.earned - m.spent, RULES.balance_cap)));
-    tr.appendChild(bal);
+    for(const c of COLUMNS) tr.appendChild(el('td','num', fmt(m.att[c.event] || 0)));
+    const capped = Math.min(m.earned, RULES.balance_cap);
+    const td = el('td','num ap', fmt(capped));
+    if(m.earned > RULES.balance_cap){ td.title = fmt(m.earned)+' AP earned, capped at '+fmt(RULES.balance_cap); td.style.color='var(--crimson)'; }
+    tr.appendChild(td);
     tb.appendChild(tr);
   });
+}
+
+// The tab carries a two-row header: row h names each period ("Cave 03/09-03/22"),
+// row h+1 marks its columns ("Att", "Pay"). Merged cells leave the period name only
+// on its first column, so carry it forward, then take the newest Att column per kind.
+function readPeriod(rows){
+  const h = rows.findIndex(r => r.some(c => /^(IGN|Name)$/i.test(c.trim())));
+  if(h < 0) throw new Error('no IGN column');
+  const period = rows[h].map(c => c.trim());
+  for(let i=1;i<period.length;i++) if(!period[i]) period[i] = period[i-1];
+  const sub = (rows[h+1] || []).map(c => c.trim());
+  const nameAt = period.findIndex(c => /^(IGN|Name)$/i.test(c));
+
+  const at = COLUMNS.map(c => {
+    let i = -1;
+    for(let j=0;j<period.length;j++)
+      if(sub[j] === ATT && period[j].startsWith(c.prefix + ' ')) i = j;
+    return {...c, i, label: i < 0 ? null : period[i]};
+  });
+  if(at.every(c => c.i < 0)) throw new Error('no attendance columns');
+
+  const seen = new Set();
+  const members = rows.slice(h+2).map(r => {
+    const name = (r[nameAt]||'').trim();
+    if(!name || seen.has(name)) return null;
+    const tag = (name.match(/^\[([^\]]+)\]/) || [,null])[1];
+    if(GUILD_TAG !== 'ALL' && tag !== GUILD_TAG) return null;
+    seen.add(name);
+    const att = {}; let earned = 0;
+    for(const c of at){
+      const n = c.i < 0 ? 0 : Number((r[c.i]||'').replace(/[^0-9.]/g,'')) || 0;
+      att[c.event] = n;
+      earned += n * RULES.events[c.event].base_ap;
+    }
+    return {name, att, earned};
+  }).filter(Boolean);
+
+  return {members, labels: at.filter(c => c.i >= 0).map(c => c.label)};
 }
 
 async function loadRoster(){
   const sub = document.getElementById('standings-sub');
   try{
-    const rows = parseCSV(await (await fetch(csvUrl(ROSTER_GID))).text());
-    const seen = new Set();
-    ROSTER = rows.slice(ROSTER_SKIP)
-      .map(r => (r[ROSTER_COL]||'').trim())
-      .filter(n => n && !seen.has(n) && seen.add(n))
-      .map(name => ({name, earned:0, spent:0}));
-    sub.textContent = LEDGER_GID
-      ? `${ROSTER.length} members. Balances update as the ledger tab is filled in.`
-      : `${ROSTER.length} members, read live from the loot sheet. Everyone starts at zero on Monday 5 October — balances fill in once the ledger tab is linked.`;
+    const read = readPeriod(parseCSV(await (await fetch(tabUrl())).text()));
+    ROSTER = read.members;
+    ROSTER.sort((a,b) => b.earned - a.earned || a.name.localeCompare(b.name));
+    const logged = ROSTER.filter(m => m.earned > 0).length;
+    document.getElementById('code-ex').textContent = read.labels.join(' + ');
+    sub.textContent = `${ROSTER.length} members. Newest attendance on the sheet: ${read.labels.join(' and ')}`
+      + (logged ? `, ${logged} with check-ins logged. Updates whenever the sheet does.`
+                : `. No check-ins entered for it yet.`);
+
+    const over = ROSTER.filter(m => m.earned > RULES.balance_cap).length;
+    if(over > ROSTER.length/4) capWarning(over);
   }catch(err){
-    sub.textContent = 'Could not reach the loot sheet. Check that it is still shared as "anyone with the link".';
+    sub.textContent = 'Could not read "'+PERIOD_TAB+'". Check the tab name and that the sheet is shared as "anyone with the link".';
   }
   renderRoster('');
+}
+
+// If most of the guild blows past the cap, the AP rates don't match how
+// attendance is actually counted in the sheet. Say so rather than show a wall of 2,500.
+function capWarning(n){
+  const w = el('div','warn');
+  w.appendChild(el('b','Rates need a look'));
+  w.appendChild(el('span', null, `${n} members are over the ${fmt(RULES.balance_cap)} cap for this period alone. `
+    + `The sheet counts attendance far faster than the per-week limits in the rules assume, so either the AP rates per kill are too high or a "Cave Att" is not one boss. Settle that before the first loot post.`));
+  document.getElementById('drift').appendChild(w);
 }
 
 (async function(){
