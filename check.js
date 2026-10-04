@@ -43,6 +43,18 @@ check('empty line is ignored', hit(''), null);
 check('a near-miss between two similar items is refused rather than guessed',
   hit('Arcane Scroll'), null);
 
+console.log('\nYear inference');
+eval(grab('function yearsFor', '\nfunction readSheet'));
+// The real column order on PAYROLL - PASAHOD: July through to the following May,
+// crossing New Year once in the middle. The sheet never writes the year down.
+const SEQ = ['7/7-7/20', '9/29-10/19', '10/20-11/3', '12/29-01/11', '01/12 - 01/25', '04/20-05/03'];
+const ys = yearsFor(SEQ);
+check('the newest period is never dated into the future', new Date(ys[ys.length - 1], 3, 20) <= new Date(), true);
+check('December falls a year before the January after it', ys[3] < ys[4], true);
+check('periods inside one calendar run share a year', ys[1] === ys[2], true);
+check('this run spans exactly two years', new Set(ys).size, 2);
+check('a lone date with no range still gets a year', yearsFor(['8/24']).length, 1);
+
 console.log('\nQuantities');
 eval(grab('function readQty', '\nasync function readScreenshot'));
 check('x before the number', readQty('Blessing Stone x15'), 15);

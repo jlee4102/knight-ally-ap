@@ -634,7 +634,7 @@ function writePost(){
   const bids  = picked.filter(it => it.method !== 'fixed');
   const step  = RULES.auction_rules.default_bid_step;
   const L = [];
-  L.push('**JOLLIBEE LOOT \u2014 ' + new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long'}) + '**');
+  L.push('**JOLLIBEE LOOT \u2014 ' + new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'}) + '**');
   L.push('Guild Dungeon run is done, storage is open. Check your AP on the site before you claim.');
 
   if(fixed.length){
@@ -867,6 +867,25 @@ function renderRoster(filter){
 //
 // Cave and WD are picked by matching date range, never independently: "WD 8/24" has
 // no Cave twin, and pairing the newest of each would mix two different fortnights.
+// Period labels on the sheet carry no year ("Cave 04/20-05/03"), and the columns
+// cross a new year twice. They are chronological left to right, so anchor the newest
+// one to the latest year that does not put it in the future, then walk back: moving
+// left, a start month that jumps forward means we stepped over a New Year.
+function yearsFor(ranges){
+  const parse = r => { const m = r.match(/(\d{1,2})\s*\/\s*(\d{1,3})/); return m ? {mo:+m[1], d:+m[2]} : null; };
+  const parts = ranges.map(parse);
+  const years = new Array(ranges.length).fill(null);
+  const today = new Date();
+  let y = today.getFullYear();
+  const last = parts[parts.length - 1];
+  if(last && new Date(y, last.mo - 1, Math.min(last.d, 28)) > today) y--;
+  for(let i = parts.length - 1; i >= 0; i--){
+    if(parts[i] && i < parts.length - 1 && parts[i+1] && parts[i].mo > parts[i+1].mo) y--;
+    years[i] = y;
+  }
+  return years;
+}
+
 function readSheet(rows){
   const h = rows.findIndex(r => r.some(c => /^(IGN|Name)$/i.test(c.trim())));
   if(h < 0) throw new Error('no IGN column');
@@ -894,6 +913,8 @@ function readSheet(rows){
   const periods = order.filter(range =>
     body.filter(r => byRange.get(range).some(c => num(r[c.j]) > 0)).length >= MIN_ENTRIES);
   if(!periods.length) throw new Error('no period has attendance filled in');
+  const years = yearsFor(periods);
+  const dated = range => range + ' ' + years[periods.indexOf(range)];
 
   const membersFor = range => {
     const cols = byRange.get(range), seen = new Set();
@@ -914,7 +935,7 @@ function readSheet(rows){
     }).filter(Boolean);
   };
 
-  return {periods, membersFor, kinds: range => byRange.get(range).map(c => c.short)};
+  return {periods, membersFor, dated, kinds: range => byRange.get(range).map(c => c.short)};
 }
 
 let SHEET = null;
@@ -925,10 +946,10 @@ function showPeriod(range){
   const logged = ROSTER.filter(m => m.earned > 0).length;
   const newest = range === SHEET.periods[SHEET.periods.length-1];
   document.getElementById('standings-sub').textContent =
-    `${ROSTER.length} Jollibee members. Showing ${SHEET.kinds(range).join(' and ')} attendance for ${range}`
+    `${ROSTER.length} Jollibee members. Showing ${SHEET.kinds(range).join(' and ')} attendance for ${SHEET.dated(range)}`
     + `, ${logged} with check-ins. `
     + (newest ? 'This is the most recent period filled in on the sheet.' : 'Newer periods exist on the sheet.');
-  document.getElementById('code-ex').textContent = range;
+  document.getElementById('code-ex').textContent = SHEET.dated(range);
 
   const over = ROSTER.filter(m => m.earned > RULES.balance_cap).length;
   if(over > ROSTER.length/4) capWarning(over);
@@ -943,7 +964,7 @@ async function loadRoster(){
     SHEET = readSheet(parseCSV(await (await fetch(tabUrl())).text()));
     const sel = document.getElementById('period');
     sel.textContent = '';
-    [...SHEET.periods].reverse().forEach(r => { sel.appendChild(el('option', null, r)).value = r; });
+    [...SHEET.periods].reverse().forEach(r => { sel.appendChild(el('option', null, SHEET.dated(r))).value = r; });
     sel.value = SHEET.periods[SHEET.periods.length-1];
     sel.onchange = () => showPeriod(sel.value);
     sel.disabled = false;
