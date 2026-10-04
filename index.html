@@ -1,0 +1,497 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Knight Ally Activity Points</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Cinzel:wght@600;700&family=Spectral:ital,wght@0,400;0,600;1,400&family=IBM+Plex+Mono:wght@400;600&display=swap">
+<style>
+html{color-scheme:dark;background:#0e1017}body{margin:0}
+  :root{
+    color-scheme: dark;
+    --ground:#0e1017; --surface:#161a24; --raise:#1d2231; --line:#2a3043;
+    --text:#e8e3d6; --dim:#949ab0; --faint:#636a80;
+    --gold:#c9a227; --gold-soft:#8a7220; --crimson:#b03a43; --sage:#6f9268;
+    --display:"Cinzel",Georgia,serif;
+    --body:"Spectral",Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,Menlo,monospace;
+  }
+  *{box-sizing:border-box}
+  body{
+    background:var(--ground); color:var(--text);
+    font-family:var(--body); font-size:16px; line-height:1.6;
+    padding-inline:20px; padding-block:0 72px;
+  }
+  .wrap{max-width:1020px; margin:0 auto}
+  h1,h2,h3{font-family:var(--display); text-wrap:balance; margin:0; font-weight:600}
+  a{color:var(--gold)}
+
+  /* ---- header ---- */
+  header.crest{
+    padding-block:44px 30px;
+    border-bottom:1px solid var(--line);
+    display:grid; gap:14px;
+  }
+  .tag{
+    font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase;
+    color:var(--gold); display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+  }
+  .tag .sep{color:var(--faint)}
+  h1{font-size:clamp(30px,6vw,50px); line-height:1.08; letter-spacing:.01em}
+  h1 em{font-style:normal; color:var(--gold); display:block; font-size:.52em; letter-spacing:.14em; text-transform:uppercase; margin-top:12px}
+  .lede{color:var(--dim); max-width:62ch; margin:0}
+
+  /* ---- tiles ---- */
+  .tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line);
+    border:1px solid var(--line); margin-block:30px}
+  .tile{background:var(--surface); padding:20px 18px; display:grid; gap:4px}
+  .tile .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--faint)}
+  .tile .v{font-family:var(--mono); font-size:30px; font-weight:600; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.1}
+  .tile .n{font-size:13.5px; color:var(--dim); line-height:1.45}
+
+  /* ---- sections ---- */
+  section{padding-block:38px; border-top:1px solid var(--line)}
+  section > h2{font-size:23px; letter-spacing:.02em}
+  .sub{color:var(--dim); font-size:14.5px; margin:8px 0 22px; max-width:64ch}
+
+  /* ---- tables ---- */
+  .scroll{overflow-x:auto; border:1px solid var(--line); background:var(--surface)}
+  table{border-collapse:collapse; width:100%; min-width:520px; font-size:14.5px}
+  th{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--faint); text-align:left; font-weight:400; padding:11px 14px;
+    border-bottom:1px solid var(--line); white-space:nowrap; background:var(--surface)}
+  td{padding:10px 14px; border-bottom:1px solid #20263400; box-shadow:inset 0 -1px 0 #232939; vertical-align:middle}
+  tbody tr:last-child td{box-shadow:none}
+  .num{font-family:var(--mono); font-variant-numeric:tabular-nums; text-align:right; white-space:nowrap}
+  .ap{color:var(--gold); font-weight:600}
+  .ev-name{font-weight:600}
+  .ev-note{display:block; color:var(--faint); font-size:12.5px; font-family:var(--body)}
+
+  .chip{font-family:var(--mono); font-size:10px; letter-spacing:.12em; text-transform:uppercase;
+    padding:2.5px 7px; border:1px solid currentColor; white-space:nowrap}
+  .chip.pvp{color:var(--crimson)}
+  .chip.pve{color:var(--sage)}
+  .chip.prop{color:var(--faint); border-style:dashed}
+
+  /* ---- stepper ---- */
+  .step{display:inline-flex; align-items:stretch; border:1px solid var(--line); background:var(--raise)}
+  .step button{
+    background:none; border:0; color:var(--dim); font-family:var(--mono); font-size:15px;
+    width:28px; cursor:pointer; line-height:1; padding:0;
+  }
+  .step button:hover:not(:disabled){color:var(--gold); background:#252b3c}
+  .step button:disabled{color:#3b4157; cursor:default}
+  .step input{
+    width:46px; background:none; border:0; border-inline:1px solid var(--line);
+    color:var(--text); font-family:var(--mono); font-size:14px; text-align:center;
+    padding:6px 0; font-variant-numeric:tabular-nums;
+  }
+  .step input::-webkit-outer-spin-button,.step input::-webkit-inner-spin-button{-webkit-appearance:none;margin:0}
+  .step input{-moz-appearance:textfield}
+  .of{font-family:var(--mono); font-size:11px; color:var(--faint); margin-left:8px}
+
+  select,input[type=search]{
+    background:var(--raise); color:var(--text); border:1px solid var(--line);
+    font-family:var(--mono); font-size:12.5px; padding:6px 8px;
+  }
+  input[type=search]{font-size:14px; padding:9px 12px; width:100%; max-width:280px}
+  :focus-visible{outline:2px solid var(--gold); outline-offset:2px}
+
+  /* ---- running total bar ---- */
+  .total{
+    position:sticky; bottom:0; margin-top:20px; background:var(--raise);
+    border:1px solid var(--line); padding:14px 16px calc(14px + env(safe-area-inset-bottom,0px));
+    display:flex; gap:18px; align-items:center; flex-wrap:wrap;
+  }
+  .total .big{font-family:var(--mono); font-size:27px; font-weight:600; color:var(--gold); font-variant-numeric:tabular-nums}
+  .total .lbl{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+  .bar{flex:1 1 180px; min-width:150px; height:7px; background:#0c0e14; border:1px solid var(--line); position:relative}
+  .bar i{display:block; height:100%; background:var(--gold-soft); transition:width .18s}
+  .bar b{position:absolute; top:-1px; bottom:-1px; width:1px; background:var(--crimson)}
+
+  .toggles{display:flex; gap:20px; flex-wrap:wrap; margin-bottom:20px; font-size:13.5px; color:var(--dim)}
+  .toggles label{display:flex; gap:8px; align-items:center; cursor:pointer}
+  .toggles input{accent-color:var(--gold); width:15px; height:15px}
+
+  .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:22px}
+  .note{border-left:2px solid var(--gold-soft); padding:2px 0 2px 16px; color:var(--dim); font-size:14.5px}
+  .note strong{color:var(--text); font-weight:600}
+  code{font-family:var(--mono); font-size:12.5px; background:var(--raise); padding:1.5px 5px; color:var(--text)}
+
+  .warn{border:1px solid var(--crimson); color:var(--text); background:#1d1418; padding:12px 16px; font-size:14px; margin-bottom:22px}
+  .warn b{color:var(--crimson); font-family:var(--mono); font-size:11px; letter-spacing:.14em; text-transform:uppercase; display:block; margin-bottom:3px}
+
+  ol.cycle{counter-reset:c; list-style:none; padding:0; margin:0; display:grid; gap:14px}
+  ol.cycle li{counter-increment:c; display:grid; grid-template-columns:30px 1fr; gap:14px; align-items:start}
+  ol.cycle li::before{content:counter(c); font-family:var(--mono); font-size:12px; color:var(--gold);
+    border:1px solid var(--line); height:26px; display:grid; place-items:center; margin-top:2px}
+
+  dl.rules{margin:0; display:grid; gap:12px}
+  dl.rules dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint)}
+  dl.rules dd{margin:3px 0 0; font-size:14.5px}
+
+  footer{padding-block:34px 0; border-top:1px solid var(--line); color:var(--faint); font-size:13px}
+
+  @media (max-width:560px){
+    .tiles{grid-template-columns:1fr}
+    h1 em{font-size:.6em}
+  }
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+
+<div class="wrap">
+  <header class="crest">
+    <div class="tag"><span>102 Knight Ally</span><span class="sep">/</span><span>Union UDI</span><span class="sep">/</span><span>Night Crows</span></div>
+    <h1>Activity Points<em>Show up. Earn. Claim the vault.</em></h1>
+    <p class="lede">Every guild event you check in to pays AP. AP is the only currency for guild-storage loot — fixed-price claims and 24-hour auctions, one loot post a week after the Guild Dungeon run.</p>
+  </header>
+
+  <div id="drift"></div>
+
+  <div class="tiles">
+    <div class="tile"><span class="k">Full week</span><span class="v" id="t-full">—</span><span class="n">Everything, every spawn. The ceiling on one week's earning.</span></div>
+    <div class="tile"><span class="k">Scheduled only</span><span class="v" id="t-sched">—</span><span class="n">Crusade, GvG, Guild Dungeon, Epic Dungeon, World Boss. No grinding.</span></div>
+    <div class="tile"><span class="k">Balance cap</span><span class="v" id="t-cap">—</span><span class="n">AP above the cap is not credited. Spend before you stockpile.</span></div>
+  </div>
+
+  <section id="earn">
+    <h2>What a week earns</h2>
+    <p class="sub">Set what you actually attend. Every rate below comes from the guild rules file, so a rate change here is a one-line edit there.</p>
+
+    <div class="toggles">
+      <label><input type="checkbox" id="opt-win"> <span>Count PvP win bonus <span class="chip prop">proposed</span></span></label>
+      <label><input type="checkbox" id="opt-region"> <span>Count region turnout bonus <span class="chip prop">proposed</span></span></label>
+    </div>
+
+    <div class="scroll">
+      <table id="earn-table">
+        <thead><tr>
+          <th>Event</th><th>Type</th><th class="num">AP each</th><th>Attended</th><th class="num">AP</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+
+    <div class="total">
+      <div><div class="lbl">Your week</div><div class="big" id="week-total">0</div></div>
+      <div class="bar" title="Progress toward the balance cap"><i id="week-bar" style="width:0"></i><b id="week-mark"></b></div>
+      <div><div class="lbl">of cap</div><div class="num" id="week-pct" style="font-size:15px;color:var(--dim)">—</div></div>
+      <button type="button" id="btn-full" style="background:var(--raise);border:1px solid var(--line);color:var(--dim);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:9px 14px;cursor:pointer">Fill max</button>
+      <button type="button" id="btn-clear" style="background:none;border:1px solid var(--line);color:var(--faint);font-family:var(--mono);font-size:11px;letter-spacing:.12em;text-transform:uppercase;padding:9px 14px;cursor:pointer">Clear</button>
+    </div>
+  </section>
+
+  <section id="loot">
+    <h2>What AP buys</h2>
+    <p class="sub">Guild storage holds 100 slots and items expire after 30 days, so the vault empties every week. Nothing may cost more than one week of full activity — the page checks that against the rates above.</p>
+    <div class="scroll">
+      <table id="loot-table">
+        <thead><tr>
+          <th>Item</th><th>How it's sold</th><th class="num">Price / min bid</th><th class="num">Weeks to afford</th><th>Discord channel</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="standings">
+    <h2>Standings</h2>
+    <p class="sub" id="standings-sub">Loading the roster…</p>
+    <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
+    <div class="scroll" style="margin-top:14px">
+      <table id="roster-table">
+        <thead><tr><th style="width:56px" class="num">#</th><th>Member</th><th class="num">Earned</th><th class="num">Spent</th><th class="num">Balance</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
+  <section id="how">
+    <h2>The weekly cycle</h2>
+    <div class="grid2" style="margin-top:20px">
+      <ol class="cycle" id="cycle"></ol>
+      <dl class="rules" id="rulelist"></dl>
+    </div>
+  </section>
+
+  <section id="setup">
+    <h2>Wiring up balances</h2>
+    <p class="sub">Standings read a Google Sheet tab directly — no bot, no server, no login. Add a tab with these five columns and the numbers above start filling in.</p>
+    <div class="note">
+      <p style="margin:0 0 10px"><strong>Columns:</strong> <code>date</code> · <code>member</code> · <code>code</code> · <code>qty</code> · <code>turnout</code></p>
+      <p style="margin:0 0 10px"><code>member</code> matches the IGN in the roster. <code>code</code> is an event key (<code id="code-ex">—</code>) or an item's Discord channel for a purchase. <code>qty</code> is how many, <code>turnout</code> is the headcount for caves and region kills — leave it blank otherwise.</p>
+      <p style="margin:0">One row per credit, void or purchase. The page does the AP arithmetic from the rules file, so the sheet never holds a stale number and the ledger stays an audit trail.</p>
+    </div>
+  </section>
+
+  <footer>
+    <p style="margin:0">Rates, prices and rules read live from <code>ap_rules.json</code>. Roster reads live from the 102 Knight Ally loot sheet. Disputes go to officers; the attendance log is the record.</p>
+  </footer>
+</div>
+
+<script>
+const SHEET_ID = '1kMqBmOm21dVIgKlrqdwgMr2FilfNVaz4x1nsegV-FJQ';
+const ROSTER_GID = '1028363311';
+const ROSTER_COL = 1, ROSTER_SKIP = 3;
+// ponytail: no ledger tab exists yet, so balances read 0. Set the gid and they go live.
+const LEDGER_GID = null;
+
+const csvUrl = gid => `https://docs.google.com/spreadsheets/d/${SHEET_ID}/export?format=csv&gid=${gid}`;
+
+function parseCSV(t){
+  const rows=[[]]; let f='', q=false;
+  for(let i=0;i<t.length;i++){
+    const c=t[i];
+    if(q){ if(c==='"'){ if(t[i+1]==='"'){f+='"';i++;} else q=false; } else f+=c; }
+    else if(c==='"') q=true;
+    else if(c===','){ rows[rows.length-1].push(f); f=''; }
+    else if(c==='\n'){ rows[rows.length-1].push(f); f=''; rows.push([]); }
+    else if(c!=='\r') f+=c;
+  }
+  rows[rows.length-1].push(f);
+  return rows;
+}
+
+let RULES=null, STATE={}, TURNOUT={};
+const fmt = n => Math.round(n).toLocaleString('en-US');
+const el = (t,c,x) => { const e=document.createElement(t); if(c)e.className=c; if(x!=null)e.textContent=x; return e; };
+
+// AP for one check-in of an event, honouring turnout tiers and the proposed toggles.
+function apEach(key, ev){
+  const tiers = key==='caves_boss' ? ev.low_turnout_bonus
+              : (key==='region_boss' && document.getElementById('opt-region')?.checked) ? ev.low_turnout_bonus.tiers
+              : null;
+  if(tiers){
+    const n = TURNOUT[key] ?? 99;
+    const hit = tiers.find(t => n >= t.min_members && (t.max_members == null || n <= t.max_members));
+    if(hit) return hit.ap;
+  }
+  let ap = ev.base_ap;
+  if(ev.win_bonus && document.getElementById('opt-win')?.checked) ap += ev.win_bonus.ap;
+  return ap;
+}
+
+function weekTotal(counts){
+  let sum = 0;
+  for(const [key, ev] of Object.entries(RULES.events)) sum += apEach(key, ev) * (counts[key] ?? 0);
+  return sum;
+}
+const maxCounts = () => Object.fromEntries(Object.entries(RULES.events).map(([k,e])=>[k,e.per_week]));
+
+// Full activity with no bonuses and no turnout tiers — the figure every price is measured against.
+function baselineWeek(){
+  return Object.values(RULES.events).reduce((s,e)=>s + e.base_ap*e.per_week, 0);
+}
+const SCHEDULED = ['crusade_dominion','gvg','guild_dungeon','epic_dungeon','world_boss'];
+function scheduledWeek(){
+  return SCHEDULED.reduce((s,k)=>s + RULES.events[k].base_ap*RULES.events[k].per_week, 0);
+}
+
+function buildEarnTable(){
+  const tb = document.querySelector('#earn-table tbody');
+  tb.textContent='';
+  const order = Object.entries(RULES.events).sort((a,b)=>
+    (a[1].type===b[1].type ? b[1].base_ap-a[1].base_ap : a[1].type==='pvp'?-1:1));
+
+  for(const [key, ev] of order){
+    const tr = el('tr'); tr.dataset.key = key;
+
+    const td1 = el('td');
+    td1.appendChild(el('span','ev-name',ev.label));
+    if(ev.schedule) td1.appendChild(el('span','ev-note',ev.schedule));
+    tr.appendChild(td1);
+
+    const td2 = el('td');
+    td2.appendChild(el('span','chip '+ev.type, ev.type.toUpperCase()));
+    if(ev.win_bonus) td2.append(' ', el('span','chip prop','+'+ev.win_bonus.ap+' win'));
+    tr.appendChild(td2);
+
+    const td3 = el('td','num');
+    td3.appendChild(el('span','ap','—'));
+    const tiers = ev.low_turnout_bonus && (ev.low_turnout_bonus.tiers || ev.low_turnout_bonus);
+    if(Array.isArray(tiers)){
+      const sel = document.createElement('select');
+      sel.setAttribute('aria-label','Turnout for '+ev.label);
+      sel.style.cssText='display:block;margin-top:6px';
+      for(const t of tiers){
+        const o=document.createElement('option');
+        o.value = t.min_members;
+        o.textContent = (t.max_members==null ? t.min_members+'+' : t.min_members+'–'+t.max_members)+' there';
+        sel.appendChild(o);
+      }
+      sel.value = tiers[tiers.length-1].min_members;
+      TURNOUT[key] = Number(sel.value);
+      sel.addEventListener('change', ()=>{ TURNOUT[key]=Number(sel.value); refresh(); });
+      td3.appendChild(sel);
+    }
+    tr.appendChild(td3);
+
+    const td4 = el('td');
+    const step = el('div','step');
+    const minus = el('button',null,'−'); minus.type='button'; minus.setAttribute('aria-label','One fewer '+ev.label);
+    const inp = document.createElement('input');
+    inp.type='number'; inp.min='0'; inp.max=ev.per_week; inp.value='0';
+    inp.setAttribute('aria-label',ev.label+' attended this week');
+    const plus = el('button',null,'+'); plus.type='button'; plus.setAttribute('aria-label','One more '+ev.label);
+    const set = v => { STATE[key]=Math.max(0,Math.min(ev.per_week, v|0)); inp.value=STATE[key]; refresh(); };
+    minus.onclick = ()=>set((STATE[key]??0)-1);
+    plus.onclick  = ()=>set((STATE[key]??0)+1);
+    inp.oninput   = ()=>set(Number(inp.value));
+    step.append(minus, inp, plus);
+    td4.append(step, el('span','of','of '+ev.per_week));
+    tr.appendChild(td4);
+
+    tr.appendChild(el('td','num ap','0'));
+    tb.appendChild(tr);
+    STATE[key]=0;
+  }
+}
+
+function refresh(){
+  for(const tr of document.querySelectorAll('#earn-table tbody tr')){
+    const key = tr.dataset.key, ev = RULES.events[key], each = apEach(key, ev);
+    tr.children[2].querySelector('.ap').textContent = each;
+    tr.children[4].textContent = fmt(each * (STATE[key]??0));
+  }
+  const total = weekTotal(STATE), cap = RULES.balance_cap;
+  document.getElementById('week-total').textContent = fmt(total);
+  document.getElementById('week-bar').style.width = Math.min(100, total/cap*100)+'%';
+  document.getElementById('week-pct').textContent = Math.round(total/cap*100)+'%';
+  const baseline = baselineWeek();
+  document.getElementById('week-mark').style.left = (baseline/cap*100)+'%';
+  document.getElementById('week-mark').title = 'Full activity: '+fmt(baseline)+' AP';
+  buildLoot(baseline);
+}
+
+function buildLoot(baseline){
+  const tb = document.querySelector('#loot-table tbody');
+  tb.textContent='';
+  const items = [...RULES.items].sort((a,b)=>(b.price ?? b.min_bid ?? b.min_per_unit) - (a.price ?? a.min_bid ?? a.min_per_unit));
+  for(const it of items){
+    const cost = it.price ?? it.min_bid ?? it.min_per_unit;
+    const tr = el('tr');
+
+    const td1 = el('td');
+    td1.appendChild(el('span','ev-name',it.name));
+    if(it.unit) td1.appendChild(el('span','ev-note',it.unit));
+    tr.appendChild(td1);
+
+    const td2 = el('td');
+    const how = it.method==='fixed' ? 'Fixed price' : it.method==='auction_batch' ? 'Batch auction' : 'Auction';
+    td2.appendChild(el('span', 'chip '+(it.method==='fixed'?'pve':'pvp'), how));
+    if(it.bid_step) td2.appendChild(el('span','ev-note','bids rise by '+it.bid_step));
+    tr.appendChild(td2);
+
+    const td3 = el('td','num');
+    td3.appendChild(el('span','ap', fmt(cost)));
+    if(cost > baseline) td3.appendChild(el('span','ev-note','over the one-week rule'));
+    tr.appendChild(td3);
+
+    tr.appendChild(el('td','num', (cost/baseline).toFixed(2)));
+    tr.appendChild(el('td', null, it.channel ? '#'+it.channel : 'ask an officer'));
+    if(cost > baseline) td3.style.color = 'var(--crimson)';
+    tb.appendChild(tr);
+  }
+}
+
+function buildStatic(){
+  const c = document.getElementById('cycle');
+  for(const s of RULES.weekly_cycle) c.appendChild(el('li', null, s));
+
+  const a = RULES.auction_rules, f = RULES.fixed_price_rules, e = RULES.eligibility;
+  const pairs = [
+    ['Auctions', `Open ${a.duration_hours} h. Bids rise by ${a.default_bid_step} AP. Winner pays their own bid; ${a.tiebreak}.`],
+    ['No bids', a.no_bids.charAt(0).toUpperCase()+a.no_bids.slice(1)+'.'],
+    ['Fixed price', `${f.claim.charAt(0).toUpperCase()+f.claim.slice(1)}. Unclaimed after ${f.unclaimed_after_hours} h goes to the ${f.unclaimed_goes_to}.`],
+    ['Transfers', e.no_ap_transfers ? 'AP cannot be given to another member.' : 'Transfers allowed.'],
+    ['Leaving', `Leaving the guild resets your balance to ${e.leaving_guild_resets_balance_to}.`],
+    ['Idling', e.idle_at_spawn.charAt(0).toUpperCase()+e.idle_at_spawn.slice(1)+'.'],
+    ['Storage', `${RULES.constraints.storage_slots} slots, ${RULES.constraints.storage_expiry_days} days before items expire.`],
+  ];
+  const dl = document.getElementById('rulelist');
+  for(const [k,v] of pairs){ dl.appendChild(el('dt',null,k)); dl.appendChild(el('dd',null,v)); }
+
+  document.getElementById('code-ex').textContent = Object.keys(RULES.events).slice(0,3).join(', ')+', …';
+}
+
+// Self-check: the rules file must still produce the two headline figures the system was designed around.
+function checkDrift(){
+  const expect = [[baselineWeek(), 1086, 'full week'], [scheduledWeek(), 575, 'scheduled only']];
+  const off = expect.filter(([got, want]) => got !== want);
+  if(!off.length) return;
+  const w = el('div','warn');
+  w.appendChild(el('b','Rules changed'));
+  w.appendChild(el('span', null, off.map(([got,want,what]) =>
+    `A ${what} is now ${fmt(got)} AP, not ${fmt(want)}. Prices and the cap were set against the old figure — check them before the next loot post.`).join(' ')));
+  document.getElementById('drift').appendChild(w);
+}
+
+let ROSTER = [];
+function renderRoster(filter){
+  const tb = document.querySelector('#roster-table tbody');
+  tb.textContent='';
+  const q = (filter||'').toLowerCase();
+  const rows = ROSTER.filter(m => !q || m.name.toLowerCase().includes(q));
+  if(!rows.length){
+    const tr = el('tr'); const td = el('td', null, q ? 'No member by that name.' : 'Roster unavailable.');
+    td.colSpan = 5; td.style.color='var(--faint)'; tr.appendChild(td); tb.appendChild(tr); return;
+  }
+  rows.forEach((m,i) => {
+    const tr = el('tr');
+    tr.appendChild(el('td','num', String(i+1)));
+    tr.appendChild(el('td', null, m.name));
+    tr.appendChild(el('td','num', fmt(m.earned)));
+    tr.appendChild(el('td','num', m.spent ? '−'+fmt(m.spent) : '0'));
+    const bal = el('td','num ap', fmt(Math.min(m.earned - m.spent, RULES.balance_cap)));
+    tr.appendChild(bal);
+    tb.appendChild(tr);
+  });
+}
+
+async function loadRoster(){
+  const sub = document.getElementById('standings-sub');
+  try{
+    const rows = parseCSV(await (await fetch(csvUrl(ROSTER_GID))).text());
+    const seen = new Set();
+    ROSTER = rows.slice(ROSTER_SKIP)
+      .map(r => (r[ROSTER_COL]||'').trim())
+      .filter(n => n && !seen.has(n) && seen.add(n))
+      .map(name => ({name, earned:0, spent:0}));
+    sub.textContent = LEDGER_GID
+      ? `${ROSTER.length} members. Balances update as the ledger tab is filled in.`
+      : `${ROSTER.length} members, read live from the loot sheet. Everyone starts at zero on Monday 5 October — balances fill in once the ledger tab is linked.`;
+  }catch(err){
+    sub.textContent = 'Could not reach the loot sheet. Check that it is still shared as "anyone with the link".';
+  }
+  renderRoster('');
+}
+
+(async function(){
+  RULES = await (await fetch('ap_rules.json')).json();
+  document.getElementById('t-full').textContent  = fmt(baselineWeek());
+  document.getElementById('t-sched').textContent = fmt(scheduledWeek());
+  document.getElementById('t-cap').textContent   = fmt(RULES.balance_cap);
+  checkDrift();
+  buildEarnTable();
+  buildStatic();
+
+  const applyAll = v => { for(const [k,e] of Object.entries(RULES.events)) STATE[k] = v ? e.per_week : 0;
+    for(const tr of document.querySelectorAll('#earn-table tbody tr')) tr.querySelector('input').value = STATE[tr.dataset.key];
+    refresh(); };
+  document.getElementById('btn-full').onclick  = ()=>applyAll(true);
+  document.getElementById('btn-clear').onclick = ()=>applyAll(false);
+  document.getElementById('opt-win').onchange    = refresh;
+  document.getElementById('opt-region').onchange = refresh;
+  document.getElementById('search').oninput = e => renderRoster(e.target.value);
+
+  // Open showing a full week, so the page says what the system pays before anyone touches it.
+  STATE = maxCounts();
+  for(const tr of document.querySelectorAll('#earn-table tbody tr')) tr.querySelector('input').value = STATE[tr.dataset.key];
+  refresh();
+  loadRoster();
+})();
+</script>
+</body>
+</html>

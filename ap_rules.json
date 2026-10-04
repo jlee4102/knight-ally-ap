@@ -1,0 +1,128 @@
+{
+  "_comment": "Night Crows Activity Point (AP) rules. Source of truth: 'Night Crows Activity Point System' doc, Oct 4 2026. All times are server time.",
+  "balance_cap": 2500,
+  "events": {
+    "crusade_dominion": {
+      "label": "Crusade / Dominion (union war)",
+      "base_ap": 110,
+      "per_week": 2,
+      "schedule": "Wed and Sat 9 pm (Crusade and Dominion alternate)",
+      "type": "pvp",
+      "win_bonus": { "ap": 20, "status": "proposed, not yet approved", "note": "union win counts; everyone on the check-in gets it" }
+    },
+    "gvg": {
+      "label": "Guild Battlefield (GvG)",
+      "base_ap": 105,
+      "per_week": 2,
+      "schedule": "Tue and Fri 9 pm",
+      "type": "pvp",
+      "win_bonus": { "ap": 20, "status": "proposed, not yet approved" }
+    },
+    "guild_dungeon": {
+      "label": "Guild Dungeon run (Kodshee, Tiarak, Antimeness)",
+      "base_ap": 50,
+      "per_week": 1,
+      "schedule": "weekly; resets Monday 4:00",
+      "type": "pve"
+    },
+    "epic_dungeon": {
+      "label": "Epic Dungeon boss (ED 90 or ED 110)",
+      "base_ap": 35,
+      "per_week": 1,
+      "type": "pve"
+    },
+    "world_boss": {
+      "label": "World boss / World Dungeon (Hisharat, Chantarat)",
+      "base_ap": 30,
+      "per_week": 2,
+      "schedule": "Thu and Sun",
+      "type": "pve"
+    },
+    "caves_boss": {
+      "label": "Caves boss (Ice Cavern, server only)",
+      "bosses": ["Dardaloca", "Hotura", "Frenzied Tigdal", "Corrupted Gatphillian"],
+      "base_ap": 12,
+      "per_week": 28,
+      "type": "pve",
+      "low_turnout_bonus": [
+        { "min_members": 1, "max_members": 3, "ap": 20 },
+        { "min_members": 4, "max_members": 6, "ap": 16 },
+        { "min_members": 7, "max_members": null, "ap": 12 }
+      ]
+    },
+    "region_boss": {
+      "label": "Region boss (union rotates which bosses each guild gets)",
+      "base_ap": 10,
+      "per_week": 14,
+      "type": "pve",
+      "low_turnout_bonus": {
+        "status": "proposed, not yet approved",
+        "tiers": [
+          { "min_members": 1, "max_members": 3, "ap": 16 },
+          { "min_members": 4, "max_members": 6, "ap": 13 },
+          { "min_members": 7, "max_members": null, "ap": 10 }
+        ]
+      }
+    },
+    "battlefield_elite": {
+      "label": "Battlefield elite (our assigned spawn)",
+      "base_ap": 5,
+      "per_week": 7,
+      "type": "pve"
+    }
+  },
+  "items": [
+    { "channel": "legend-glider-lvl-apply", "name": "Glider material (Orbs of Winds)", "method": "fixed", "price": 200, "unit": "per 25 orbs" },
+    { "channel": "legend-chest", "name": "Golden Insignia fragments (chest)", "method": "auction_batch", "min_per_unit": 6, "bid_step": 5, "unit": "per fragment" },
+    { "channel": "legend-cape", "name": "Golden Insignia fragments (cape)", "method": "auction_batch", "min_per_unit": 6, "bid_step": 5, "unit": "per fragment" },
+    { "channel": "legend-gloves", "name": "Golden Insignia fragments (gloves)", "method": "auction_batch", "min_per_unit": 6, "bid_step": 5, "unit": "per fragment" },
+    { "channel": "legend-scrolls", "name": "Legendary scroll (Arcane Scroll Selection Chest)", "method": "auction", "min_bid": 100, "bid_step": 25 },
+    { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Pitchblack chest", "method": "fixed", "price": 100, "unit": "per chest" },
+    { "channel": "t3-crafting-material", "name": "T3 crafting material", "method": "auction", "min_bid": 100, "bid_step": 25 },
+    { "channel": "aura-stones", "name": "Aura stone (red or green only)", "method": "auction", "min_bid": 250, "bid_step": 25 },
+    { "channel": "source-of-wisdom", "name": "Source of Wisdom", "method": "fixed", "price": 150 },
+    { "channel": "blessing", "name": "Blessing stone", "method": "fixed", "price": 8, "unit": "per stone" },
+    { "channel": "remnants", "name": "Forgotten Remnant", "method": "fixed", "price": 8, "unit": "per remnant" },
+    { "channel": "skillbooks", "name": "Skill book", "method": "auction", "min_bid": 150, "bid_step": 25, "unit": "per book" },
+    { "channel": "gear-mats-apply", "name": "Gear material", "method": "fixed", "price": 5, "unit": "per unit" },
+    { "channel": "potential", "name": "Crystal of Liberation (Potential)", "method": "fixed", "price": 100, "unit": "per stack of 20" },
+    { "channel": "t3-gear-post", "name": "Epic T3 gear", "method": "auction", "min_bid": 100, "bid_step": 25 },
+    { "channel": null, "name": "Higher Arcane Scroll", "method": "fixed", "price": 3, "unit": "per scroll" },
+    { "channel": null, "name": "Superior Arcane Scroll", "method": "fixed", "price": 15, "unit": "per scroll" },
+    { "channel": null, "name": "Master's Aircraft Toolbox", "method": "fixed", "price": 50, "unit": "each" },
+    { "channel": null, "name": "Essence of the Sky", "method": "fixed", "price": 50, "unit": "each" }
+  ],
+  "not_for_sale_guild_leader_only": [
+    "Legend accessories", "Legend pants", "Legend boots", "Legend helmet", "4th advancement items",
+    "T1/T2 codex", "Morion", "Guild coin", "Higherseal", "Blue aura stones", "Essence of Curses", "Gold"
+  ],
+  "auction_rules": {
+    "duration_hours": 24,
+    "default_bid_step": 25,
+    "tiebreak": "earlier bid wins",
+    "winner_pays": "own bid",
+    "no_bids": "relist at minimum as fixed price for 24 h, then item goes to guild leader"
+  },
+  "fixed_price_rules": {
+    "claim": "first eligible member who claims and has enough AP",
+    "unclaimed_after_hours": 48,
+    "unclaimed_goes_to": "guild leader"
+  },
+  "weekly_cycle": [
+    "After Guild Dungeon run: one loot post with every sellable item + updated balances",
+    "Day 1-2: fixed-price claims; auctions close at 24 h",
+    "Day 2: unsold auctions become fixed price at minimum for 24 h",
+    "Day 3: anything left goes to the guild leader"
+  ],
+  "eligibility": {
+    "no_ap_transfers": true,
+    "leaving_guild_resets_balance_to": 0,
+    "disputes": "officers decide; attendance log is the record",
+    "idle_at_spawn": "any officer can void a member's check-in for that event"
+  },
+  "constraints": {
+    "one_week_rule": "no price or minimum bid may exceed one week of full activity (~1,085 AP)",
+    "storage_slots": 100,
+    "storage_expiry_days": 30
+  }
+}
