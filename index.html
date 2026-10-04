@@ -177,6 +177,10 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   @media (max-width:640px){ .cal{grid-template-columns:1fr} .day{min-height:0} }
 
   tr.afford td:first-child{box-shadow:inset 2px 0 0 var(--sage)}
+  tr.settled td{color:var(--dim)}
+  tr.settled td:first-child{box-shadow:inset 2px 0 0 var(--line)}
+  tr.due td:first-child{box-shadow:inset 2px 0 0 var(--gold)}
+  .flag{display:block; font-family:var(--mono); font-size:10.5px; color:var(--crimson); margin-top:3px}
   .tick{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--sage); display:block}
   .tick.no{color:var(--faint)}
 
@@ -234,6 +238,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <a href="#events">Check-ins</a>
     <a href="#week">This week</a>
     <a href="#earn">Earning</a>
+    <a href="#vault">The vault</a>
     <a href="#loot">Loot prices</a>
     <a href="#post" class="officer">Officers</a>
   </nav>
@@ -317,6 +322,19 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </section>
 
+  <section id="vault">
+    <h2>The vault</h2>
+    <p class="sub" id="vault-sub">Loading what is posted…</p>
+    <div class="scroll">
+      <table id="vault-table">
+        <thead><tr>
+          <th>Item</th><th class="num">Qty</th><th>How</th><th class="num">Price / bid</th><th>State</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
+
   <section id="loot">
     <h2>What AP buys</h2>
     <p class="sub">Guild storage holds 100 slots and items expire after 30 days, so the vault empties every week. Nothing may cost more than one week of full activity — the page checks that against the rates above.</p>
@@ -395,6 +413,7 @@ const SHEET_ID = '10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0';
 const TAB_RECORDS = 'AP Records';
 const TAB_EVENTS  = 'Event Logs';
 const TAB_LEDGER  = 'AP_LEDGER';
+const TAB_LISTINGS = 'AP_LISTINGS';
 
 // Columns on AP Records, mapped to the events in the rules file.
 const EARN_COLUMNS = [
@@ -898,6 +917,7 @@ function setMe(name){
     cell('You can afford', can + ' of ' + RULES.items.length, 'items on the loot board', true);
   }
   refresh();
+  buildVault();
   renderRoster(document.getElementById('search').value);
 }
 
@@ -995,6 +1015,59 @@ function readMembers(recordRows, ledgerRows){
   }).filter(Boolean);
 }
 
+// Sheets writes datetimes back as "YYYY-MM-DD HH:MM" or with seconds. Parse the
+// parts rather than handing the string to Date(), which is inconsistent across browsers.
+function parseStamp(v){
+  const m = String(v || '').match(/(\d{4})-(\d\d)-(\d\d)[ T](\d\d):(\d\d)/);
+  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : null;
+}
+
+function since(ms){
+  const mins = Math.round(Math.abs(ms) / 60000);
+  if(mins < 60) return mins + 'm';
+  const h = Math.floor(mins / 60);
+  return h < 48 ? h + 'h ' + (mins % 60) + 'm' : Math.floor(h / 24) + 'd';
+}
+
+// What officers posted, read back so members can see the vault between loot posts.
+// The sheet is typed by hand once an item sells, so check what comes back rather
+// than trusting it: a wrong price here is someone's points.
+function readListings(rows){
+  const now = new Date();
+  return rowObjects(rows).filter(r => r.item).map(r => {
+    const known = RULES.items.find(i => i.channel === r.item || i.name === r.item);
+    const closes = parseStamp(r.closes);
+    const status = (r.status || 'open').toLowerCase();
+    const min = known ? itemCost(known) : toNum(r.price_or_min);
+    const paid = toNum(r.final_ap);
+    const open = status === 'open';
+
+    const flags = [];
+    if(!known) flags.push('no item called "' + r.item + '" in the rules');
+    if(r.winner && !open && !paid) flags.push('winner recorded with no final_ap');
+    if(paid && known){
+      if(known.method === 'fixed' && paid !== known.price)
+        flags.push('fixed price is ' + known.price + ' AP, not ' + paid);
+      else if(known.method !== 'fixed' && paid < min)
+        flags.push('under the ' + min + ' AP minimum');
+    }
+
+    return {
+      name: known ? known.name : r.item,
+      unit: known ? known.unit : '',
+      qty: toNum(r.qty) || 1,
+      method: r.method || (known ? known.method : ''),
+      price: toNum(r.price_or_min) || min,
+      closes, status, paid, flags,
+      winner: r.winner || '',
+      open,
+      // Past its close and still open means an officer has not settled it yet.
+      due: open && closes && closes < now,
+      posted: parseStamp(r.posted),
+    };
+  });
+}
+
 // Every row Chielo closes, newest first. Participant Count is the turnout the
 // alliance spreadsheet never recorded, which is what the caves bonus tiers need.
 function readEvents(rows){
@@ -1013,14 +1086,14 @@ function readEvents(rows){
     .reverse();
 }
 
-let EVENTS = [];
+let EVENTS = [], LISTINGS = [];
 
 async function loadRoster(){
   const sub = document.getElementById('standings-sub');
   const grab = async name => parseCSV(await (await fetch(tabUrl(name))).text());
   try{
-    const [records, ledger, events] = await Promise.all(
-      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS].map(grab));
+    const [records, ledger, events, listings] = await Promise.all(
+      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS, TAB_LISTINGS].map(grab));
 
     ROSTER = readMembers(records, ledger);
     ROSTER.sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
@@ -1030,7 +1103,9 @@ async function loadRoster(){
     sub.textContent = `${ROSTER.length} members, ${EVENTS.length} events logged by Chielo`
       + (spent ? `, ${spent} ledger entries applied.` : '. No deductions recorded yet.');
 
+    LISTINGS = readListings(listings);
     buildEvents();
+    buildVault();
     fillPicker();
     refresh();
     renderRoster(document.getElementById('search').value);
@@ -1038,6 +1113,70 @@ async function loadRoster(){
     sub.textContent = 'Could not read the AP sheet (' + err.message
       + '). Check it is still shared as "anyone with the link".';
     renderRoster('');
+  }
+}
+
+function buildVault(){
+  const tb = document.querySelector('#vault-table tbody');
+  const sub = document.getElementById('vault-sub');
+  tb.textContent = '';
+
+  if(!LISTINGS.length){
+    sub.textContent = 'Nothing posted yet. Officers build the week\u2019s post below, then paste the rows into AP_LISTINGS.';
+    const tr = el('tr'), td = el('td', null, 'The vault is empty.');
+    td.colSpan = 5; td.style.color = 'var(--faint)'; tr.appendChild(td); tb.appendChild(tr);
+    return;
+  }
+
+  // Open items first, soonest to close at the top; settled ones after, newest first.
+  const rank = l => l.open ? 0 : 1;
+  const sorted = [...LISTINGS].sort((a, b) => rank(a) - rank(b)
+    || (a.open ? (a.closes || 0) - (b.closes || 0) : (b.posted || 0) - (a.posted || 0)));
+
+  const open = LISTINGS.filter(l => l.open).length;
+  const due = LISTINGS.filter(l => l.due).length;
+  sub.textContent = open
+    ? `${open} open, ${LISTINGS.length - open} settled.`
+      + (due ? ` ${due} past their close and waiting on an officer.` : '')
+    : `Nothing open. ${LISTINGS.length} settled.`;
+
+  const now = new Date();
+  for(const l of sorted){
+    const tr = el('tr');
+    if(l.due) tr.classList.add('due');
+    else if(!l.open) tr.classList.add('settled');
+
+    const td1 = el('td');
+    td1.appendChild(el('span','ev-name', l.name));
+    if(l.unit) td1.appendChild(el('span','ev-note', l.unit));
+    for(const f of l.flags) td1.appendChild(el('span','flag', f));
+    tr.appendChild(td1);
+
+    tr.appendChild(el('td','num', String(l.qty)));
+
+    const td3 = el('td');
+    td3.appendChild(el('span', 'chip ' + (l.method === 'fixed' ? 'pve' : 'pvp'),
+      l.method === 'fixed' ? 'Claim' : 'Bid'));
+    tr.appendChild(td3);
+
+    const td4 = el('td','num');
+    td4.appendChild(el('span','ap', fmt(l.paid || l.price)));
+    if(l.paid && l.paid !== l.price) td4.appendChild(el('span','ev-note', 'from ' + fmt(l.price)));
+    else if(l.open && ME){
+      const short = (l.paid || l.price) - ME.balance;
+      td4.appendChild(el('span', 'tick' + (short > 0 ? ' no' : ''),
+        short > 0 ? fmt(short) + ' AP short' : 'you can afford this'));
+    }
+    tr.appendChild(td4);
+
+    const td5 = el('td');
+    if(l.due) td5.appendChild(el('span','chip prop', 'needs settling'));
+    else if(l.open && l.closes) td5.appendChild(el('span', null, 'closes in ' + since(l.closes - now)));
+    else if(l.open) td5.appendChild(el('span', null, 'open'));
+    else td5.appendChild(el('span', null, l.winner ? l.status + ' \u2014 ' + l.winner : l.status));
+    tr.appendChild(td5);
+
+    tb.appendChild(tr);
   }
 }
 

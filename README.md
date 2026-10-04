@@ -28,6 +28,7 @@ Google Sheet `10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0`, three tabs, all rea
 | `AP Records` | Chielo | Running AP per member, one column per event type |
 | `Event Logs` | Chielo | One row per closed check-in: time, result, base AP, win bonus, **participant count**, participants |
 | `AP_LEDGER` | officers, by hand | Deductions, voids and corrections |
+| `AP_LISTINGS` | pasted from the loot post builder | What is posted, what it closes at, what it sold for |
 
 `balance = AP Records total + ledger credits − ledger debits`, capped at `balance_cap`.
 
@@ -45,7 +46,9 @@ Auction winners pay their own bid, which no rules file can know, so `ap` is auth
 
 The loot post builder writes these rows tab-separated. Copy, click the first empty cell under `posted`, paste — Sheets splits on tabs into the right columns. Times are `YYYY-MM-DD HH:MM`, which Sheets reads as real datetimes. `closes` is 24 h for an auction and 48 h for a fixed-price claim, both taken from `ap_rules.json`. Fill `winner` and `final_ap` by hand when it closes, then add the matching `AP_LEDGER` deduction.
 
-Nothing reads this tab yet — it is the record of what was posted. Reading it back would give the live loot board.
+The site reads this tab back as **The vault**: open items sorted by what closes soonest, settled ones after. Anything past its `closes` time with `status` still `open` is marked *needs settling*.
+
+It checks what comes back rather than trusting it — a wrong number here is somebody's points. An unknown item key, a winning bid under the minimum, a fixed item charged the wrong price, or a winner with no `final_ap` each show a flag on the row.
 
 ### Known gaps
 

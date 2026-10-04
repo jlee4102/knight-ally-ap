@@ -88,6 +88,37 @@ check('an auction closes on the clock, a fixed price waits longer',
 check('no item key contains a tab or newline that would break the paste',
   RULES.items.filter(i => /[\t\n]/.test(i.channel || i.name)).length, 0);
 
+console.log('\nReading AP_LISTINGS back');
+// One eval again: readListings closes over itemCost, toNum and rowObjects, and a
+// const from a previous eval call is not visible to this one.
+eval(grab('function itemCost', '\nfunction buildPicks')
+   + grab('const headerIndex', '\nlet EVENTS'));
+const soon = new Date(Date.now() + 3600e3), past = new Date(Date.now() - 3600e3);
+const at = d => stamp(d);
+const listing = extra => readListings([
+  LISTING_HEAD,
+  ['2026-10-04 10:00', 'skillbooks', '1', 'auction', '150', at(soon), 'open', '', '', ...[]]
+    .map((v, i) => (extra && i in extra) ? extra[i] : v),
+])[0];
+
+check('a known item key resolves to its real name', listing().name, 'Skill book');
+check('an open auction in the future is not flagged as due', listing().due, false);
+check('an open auction past its close needs settling', listing({5: at(past)}).due, true);
+check('a settled row is no longer open', listing({6: 'sold'}).open, false);
+check('an unknown item key is flagged, not silently shown',
+  listing({1: 'not-a-real-item'}).flags.length, 1);
+check('a winning bid under the minimum is flagged',
+  listing({6: 'sold', 7: 'NC | Chielo', 8: '100'}).flags.length, 1);
+check('a winning bid over the minimum is fine',
+  listing({6: 'sold', 7: 'NC | Chielo', 8: '300'}).flags.length, 0);
+check('a winner with no price recorded is flagged',
+  listing({6: 'sold', 7: 'NC | Chielo'}).flags.length, 1);
+check('a fixed item charged the wrong price is flagged',
+  listing({1: 'blessing', 3: 'fixed', 6: 'sold', 7: 'NC | Chielo', 8: '99'}).flags.length, 1);
+check('a timestamp survives the round trip to the sheet and back',
+  parseStamp(stamp(new Date(2026, 9, 4, 15, 49))).getHours(), 15);
+check('a blank closes cell does not crash the board', listing({5: ''}).closes, null);
+
 console.log('\nQuantities');
 eval(grab('function readQty', '\nasync function readScreenshot'));
 check('x before the number', readQty('Blessing Stone x15'), 15);
