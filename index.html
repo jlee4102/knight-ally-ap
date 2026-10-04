@@ -33,12 +33,16 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
     margin-inline:-20px; padding:0 20px;
     display:flex; gap:4px; overflow-x:auto; scrollbar-width:none;
+    /* overflow-x:auto on a flex row lets the items escape the box vertically,
+       so pin the height here rather than leaving it to the links. */
+    align-items:stretch; min-height:46px;
   }
   nav.bar::-webkit-scrollbar{display:none}
   nav.bar a{
     font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
-    color:var(--dim); text-decoration:none; padding:14px 12px; white-space:nowrap;
+    color:var(--dim); text-decoration:none; padding:0 12px; white-space:nowrap;
     border-bottom:2px solid transparent;
+    flex:none; display:flex; align-items:center;
   }
   nav.bar a:hover{color:var(--gold); border-bottom-color:var(--gold-soft)}
   nav.bar a.officer{color:var(--faint); margin-left:auto}
@@ -248,7 +252,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     .scroll tbody td.num{text-align:left}
     .scroll tbody tr.afford, .scroll tbody tr.due{box-shadow:inset 2px 0 0 var(--gold)}
     .me-body{grid-template-columns:1fr 1fr}
-    nav.bar a{padding:13px 10px}
+    nav.bar a{padding:0 10px}
   }
 
   footer{padding-block:34px 0; border-top:1px solid var(--line); color:var(--faint); font-size:13px}
