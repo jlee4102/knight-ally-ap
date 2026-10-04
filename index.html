@@ -795,8 +795,23 @@ const STOP = new Set(['of','the','per','and','chest','selection']);
 // candidates are the items in the rules file. Score each line against each item by
 // how many of the item's distinctive words survived, and take a clear winner only.
 function matchItem(line){
-  const words = new Set(norm(line).split(' ').filter(w => w.length > 2));
+  const flat = norm(line);
+  const words = new Set(flat.split(' ').filter(w => w.length > 2));
   if(!words.size) return null;
+
+  // Prefer a name that appears intact and in order. Every storage row carries a
+  // rarity column, and "Higher Arcane Scroll of Discipline  Superior" contains every
+  // word of "Superior Arcane Scroll" too — but not in that order, and not together.
+  const whole = RULES.items
+    .map((it, i) => ({i, at: flat.indexOf(norm(it.name))}))
+    .filter(c => c.at >= 0);
+  if(whole.length === 1) return {index: whole[0].i};
+  if(whole.length > 1){
+    // Several intact names: take the earliest, then the longest.
+    whole.sort((a, b) => a.at - b.at
+      || RULES.items[b.i].name.length - RULES.items[a.i].name.length);
+    return {index: whole[0].i};
+  }
   let best = null, bestScore = 0, runnerUp = 0;
   RULES.items.forEach((it, i) => {
     const key = norm(it.name).split(' ').filter(w => w.length > 2 && !STOP.has(w));
@@ -834,7 +849,9 @@ async function readScreenshot(file){
     const hits = new Map();
     for(const line of ((res.data && res.data.text) || '').split('\n')){
       const m = matchItem(line);
-      if(m) hits.set(m.index, Math.max(hits.get(m.index) || 0, readQty(line)));
+      // Each matching line is its own stack in storage, so they add up. Keeping the
+      // largest instead turned five rows of the same scroll into a quantity of one.
+      if(m) hits.set(m.index, (hits.get(m.index) || 0) + readQty(line));
     }
     if(!hits.size){ show('Nothing recognised \u2014 tick the items by hand.'); return; }
     for(const [i, qty] of hits) setPick(i, qty);

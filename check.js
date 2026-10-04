@@ -42,6 +42,20 @@ check('unrelated UI text is ignored', hit('Guild Storage  12/100'), null);
 check('empty line is ignored', hit(''), null);
 check('a near-miss between two similar items is refused rather than guessed',
   hit('Arcane Scroll'), null);
+// Real storage rows. The rarity column is the trap: this line contains every word
+// of "Superior Arcane Scroll", but the name that is actually written is Higher.
+check('the rarity column does not steal the match',
+  hit('Higher Arcane Scroll of Discipline   Superior   2026 14:09 (UTC-4)   14 d left'),
+  'Higher Arcane Scroll');
+check('a Superb row reads the same way',
+  hit('Higher Arcane Scroll of Escalation (Bound)   Superb   21 d left'),
+  'Higher Arcane Scroll');
+check('a bound suffix is ignored', hit('Essence of the Sky (Bound)   Superior   14 d left'),
+  'Essence of the Sky');
+check('a longer in-game name still finds the item it belongs to',
+  hit("Forgotten Transcendent's Remnant (Bound)   Superior   14 d left"), 'Forgotten Remnant');
+check('a genuinely ambiguous row is still refused',
+  hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1 - Main Round'), null);
 
 console.log('\nBalances');
 // One eval: a const declared in its own eval call does not leak to the next one.
@@ -124,6 +138,25 @@ eval(grab('function readQty', '\nasync function readScreenshot'));
 check('x before the number', readQty('Blessing Stone x15'), 15);
 check('number before the x', readQty('15x Blessing Stone'), 15);
 check('no quantity defaults to one', readQty('Source of Wisdom'), 1);
+// Rows as the storage screen actually reads: no "x3" anywhere, and the same item
+// repeated once per stack. The numbers on the line are a timestamp and an expiry.
+const STORAGE = [
+  'Higher Arcane Scroll of Discipline    Superior   2026 14:09 (UTC-4)   14 d left',
+  'Higher Arcane Scroll of Escalation    Superior   2026 14:09 (UTC-4)   14 d left',
+  'Higher Arcane Scroll of Discipline    Superior   2026 14:16 (UTC-4)   14 d left',
+  'Essence of the Sky (Bound)            Superior   2026 14:27 (UTC-4)   14 d left',
+];
+const tally = new Map();
+for (const line of STORAGE) {
+  const m = matchItem(line);
+  if (m) tally.set(m.index, (tally.get(m.index) || 0) + readQty(line));
+}
+const qtyOf = name => tally.get(RULES.items.findIndex(i => i.name === name));
+check('repeated rows of one item add up instead of collapsing to one',
+  qtyOf('Higher Arcane Scroll'), 3);
+check('a different item is counted separately', qtyOf('Essence of the Sky'), 1);
+check('an expiry or timestamp on the line is not mistaken for a quantity',
+  readQty('Higher Arcane Scroll of Discipline  Superior  2026 14:09 (UTC-4)  14 d left'), 1);
 
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');
 process.exit(failed ? 1 : 0);
