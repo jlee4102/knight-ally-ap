@@ -130,6 +130,35 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   dl.rules dt{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint)}
   dl.rules dd{margin:3px 0 0; font-size:14.5px}
 
+  /* who-am-i panel */
+  .me{border:1px solid var(--line); background:var(--surface); margin-block:30px}
+  .me-pick{display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:16px 18px}
+  .me-pick label{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+  .me-pick select{flex:1 1 200px; max-width:320px; font-family:var(--body); font-size:15px; padding:8px 10px}
+  .me-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--line); border-top:1px solid var(--line)}
+  .me-cell{background:var(--surface); padding:16px 18px; display:grid; gap:3px}
+  .me-cell .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+  .me-cell .v{font-family:var(--mono); font-size:25px; font-weight:600; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.15}
+  .me-cell .v.plain{color:var(--text); font-size:19px}
+  .me-cell .n{font-size:12.5px; color:var(--dim)}
+  .clear-me{background:none; border:1px solid var(--line); color:var(--faint); font-family:var(--mono);
+    font-size:10px; letter-spacing:.12em; text-transform:uppercase; padding:7px 11px; cursor:pointer}
+
+  /* week timetable */
+  .cal{display:grid; grid-template-columns:repeat(7,1fr); gap:1px; background:var(--line); border:1px solid var(--line)}
+  .day{background:var(--surface); padding:12px 10px; display:grid; gap:7px; align-content:start; min-height:104px}
+  .day.today{background:var(--raise); box-shadow:inset 0 2px 0 var(--gold)}
+  .day .d{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase; color:var(--faint)}
+  .day.today .d{color:var(--gold)}
+  .day .e{font-size:12.5px; line-height:1.35}
+  .day .e b{display:block; font-weight:600; font-size:13px}
+  .day .e span{color:var(--faint); font-family:var(--mono); font-size:11px}
+  @media (max-width:640px){ .cal{grid-template-columns:1fr} .day{min-height:0} }
+
+  tr.afford td:first-child{box-shadow:inset 2px 0 0 var(--sage)}
+  .tick{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--sage); display:block}
+  .tick.no{color:var(--faint)}
+
   footer{padding-block:34px 0; border-top:1px solid var(--line); color:var(--faint); font-size:13px}
 
   @media (max-width:560px){
@@ -155,6 +184,21 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <div class="tile"><span class="k">Scheduled only</span><span class="v" id="t-sched">—</span><span class="n">Crusade, GvG, Guild Dungeon, Epic Dungeon, World Boss. No grinding.</span></div>
     <div class="tile"><span class="k">Balance cap</span><span class="v" id="t-cap">—</span><span class="n">AP above the cap is not credited. Spend before you stockpile.</span></div>
   </div>
+
+  <div class="me">
+    <div class="me-pick">
+      <label for="me">Who are you</label>
+      <select id="me"><option value="">Loading the roster…</option></select>
+      <button type="button" class="clear-me" id="me-clear" hidden>Forget me</button>
+    </div>
+    <div class="me-body" id="me-body" hidden></div>
+  </div>
+
+  <section id="week">
+    <h2>This week</h2>
+    <p class="sub">Scheduled events on their own. Caves, region bosses and battlefield elites run whenever your guild calls them.</p>
+    <div class="cal" id="cal"></div>
+  </section>
 
   <section id="earn">
     <h2>What a week earns</h2>
@@ -378,6 +422,7 @@ function refresh(){
   document.getElementById('week-mark').style.left = (baseline/cap*100)+'%';
   document.getElementById('week-mark').title = 'Full activity: '+fmt(baseline)+' AP';
   buildLoot(baseline);
+  if(RULES) buildWeek();
 }
 
 function buildLoot(baseline){
@@ -404,7 +449,13 @@ function buildLoot(baseline){
     if(cost > baseline) td3.appendChild(el('span','ev-note','over the one-week rule'));
     tr.appendChild(td3);
 
-    tr.appendChild(el('td','num', (cost/baseline).toFixed(2)));
+    const weeks = el('td','num', (cost/baseline).toFixed(2));
+    if(ME){
+      const bal = Math.min(ME.earned, RULES.balance_cap);
+      if(cost <= bal){ tr.classList.add('afford'); weeks.appendChild(el('span','tick','yours now')); }
+      else weeks.appendChild(el('span','tick no', fmt(cost-bal)+' AP short'));
+    }
+    tr.appendChild(weeks);
     tr.appendChild(el('td', null, it.channel ? '#'+it.channel : 'ask an officer'));
     if(cost > baseline) td3.style.color = 'var(--crimson)';
     tb.appendChild(tr);
@@ -443,7 +494,73 @@ function checkDrift(){
   document.getElementById('drift').appendChild(w);
 }
 
-let ROSTER = [];
+const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const ME_KEY = 'jollibee-ap-me';
+let ME = null, ROSTER = [];
+
+const saved = k => { try{ return localStorage.getItem(k); }catch(e){ return null; } };
+const save  = (k,v) => { try{ v==null ? localStorage.removeItem(k) : localStorage.setItem(k,v); }catch(e){} };
+
+// Each event's schedule is prose in the rules file ("Wed and Sat 9 pm"), so read the
+// day names out of it rather than inventing a second, parallel schedule to keep in sync.
+function buildWeek(){
+  const cal = document.getElementById('cal');
+  cal.textContent = '';
+  const today = new Date().getDay();
+  DAYS.forEach((d, i) => {
+    const box = el('div', 'day' + (i === today ? ' today' : ''));
+    box.appendChild(el('span','d', i === today ? d + ' · today' : d));
+    for(const [key, ev] of Object.entries(RULES.events)){
+      if(!ev.schedule || !new RegExp(d, 'i').test(ev.schedule)) continue;
+      const e = el('div','e');
+      e.appendChild(el('b', null, ev.label.replace(/ *\(.*\)/,'')));
+      const time = (ev.schedule.match(/\d{1,2}(:\d\d)? *(am|pm)/i) || [])[0];
+      e.appendChild(el('span', null, (time ? time + ' · ' : '') + apEach(key, ev) + ' AP'));
+      box.appendChild(e);
+    }
+    cal.appendChild(box);
+  });
+}
+
+function setMe(name){
+  ME = ROSTER.find(m => m.name === name) || null;
+  save(ME_KEY, ME ? ME.name : null);
+  document.getElementById('me').value = ME ? ME.name : '';
+  document.getElementById('me-clear').hidden = !ME;
+
+  const body = document.getElementById('me-body');
+  body.textContent = '';
+  body.hidden = !ME;
+  if(ME){
+    const rank = ROSTER.indexOf(ME) + 1;
+    const bal = Math.min(ME.earned, RULES.balance_cap);
+    const can = RULES.items.filter(it => (it.price ?? it.min_bid ?? it.min_per_unit) <= bal).length;
+    const cell = (k, v, n, plain) => {
+      const c = el('div','me-cell');
+      c.appendChild(el('span','k',k));
+      c.appendChild(el('span','v'+(plain?' plain':''), v));
+      if(n) c.appendChild(el('span','n',n));
+      body.appendChild(c);
+    };
+    cell('Your AP', fmt(bal), ME.earned > RULES.balance_cap ? fmt(ME.earned)+' earned, capped' : 'this period');
+    cell('Rank', '#'+rank, 'of '+ROSTER.length+' in Jollibee');
+    for(const c of COLUMNS) cell(c.short+' check-ins', fmt(ME.att[c.event]||0), fmt((ME.att[c.event]||0) * RULES.events[c.event].base_ap)+' AP');
+    cell('You can afford', can+' of '+RULES.items.length, 'items on the loot board', true);
+  }
+  refresh();
+  renderRoster(document.getElementById('search').value);
+}
+
+function fillPicker(){
+  const sel = document.getElementById('me');
+  sel.textContent = '';
+  sel.appendChild(el('option', null, ROSTER.length ? 'Pick your name…' : 'Roster unavailable')).value = '';
+  for(const m of ROSTER) sel.appendChild(el('option', null, m.name)).value = m.name;
+  sel.onchange = () => setMe(sel.value);
+  document.getElementById('me-clear').onclick = () => setMe('');
+  const remembered = saved(ME_KEY);
+  if(remembered && ROSTER.some(m => m.name === remembered)) setMe(remembered);
+}
 function renderRoster(filter){
   const tb = document.querySelector('#roster-table tbody');
   tb.textContent='';
@@ -456,7 +573,9 @@ function renderRoster(filter){
   rows.forEach((m,i) => {
     const tr = el('tr');
     tr.appendChild(el('td','num', String(i+1)));
-    tr.appendChild(el('td', null, m.name));
+    const nm = el('td', null, m.name);
+    if(ME && m.name === ME.name){ nm.style.color='var(--gold)'; nm.style.fontWeight='600'; tr.style.background='var(--raise)'; }
+    tr.appendChild(nm);
     for(const c of COLUMNS) tr.appendChild(el('td','num', fmt(m.att[c.event] || 0)));
     const capped = Math.min(m.earned, RULES.balance_cap);
     const td = el('td','num ap', fmt(capped));
@@ -521,6 +640,7 @@ async function loadRoster(){
   }catch(err){
     sub.textContent = 'Could not read "'+PERIOD_TAB+'". Check the tab name and that the sheet is shared as "anyone with the link".';
   }
+  fillPicker();
   renderRoster('');
 }
 
