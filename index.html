@@ -45,6 +45,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     flex:none; display:flex; align-items:center;
   }
   nav.bar a:hover{color:var(--gold); border-bottom-color:var(--gold-soft)}
+  nav.bar a.on{color:var(--text); border-bottom-color:var(--gold)}
   nav.bar a.officer{color:var(--faint); margin-left:auto}
 
   /* ---- header ---- */
@@ -68,7 +69,10 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 
   /* ---- sections ---- */
   section{padding-block:34px; border-top:1px solid var(--line)}
-  section:target{scroll-margin-top:52px}
+  /* Clear the sticky bar when a link jumps here, whatever the element is. */
+  section, details.fold{scroll-margin-top:calc(58px + env(safe-area-inset-top, 0px))}
+  html{scroll-behavior:smooth}
+  @media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto} }
   section > h2{font-size:23px; letter-spacing:.02em}
   .sub{color:var(--dim); font-size:14.5px; margin:8px 0 22px; max-width:64ch}
 
@@ -841,6 +845,35 @@ async function readScreenshot(file){
   }
 }
 
+// A nav link pointing at a folded section looks broken: the page jumps and nothing
+// is there. Open it first, including when someone arrives on a #hash link.
+function wireNav(){
+  const links = [...document.querySelectorAll('nav.bar a')];
+  const open = hash => {
+    const t = hash && document.querySelector(hash);
+    if(t && t.tagName === 'DETAILS') t.open = true;
+    return t;
+  };
+  for(const a of links) a.addEventListener('click', () => open(a.getAttribute('href')));
+  open(location.hash);
+
+  const targets = links.map(a => ({a, el: document.querySelector(a.getAttribute('href'))}))
+                       .filter(t => t.el);
+  let queued = false;
+  const mark = () => {
+    queued = false;
+    let current = targets[0];
+    for(const t of targets) if(t.el.getBoundingClientRect().top <= 70) current = t;
+    for(const t of targets) t.a.classList.toggle('on', t === current);
+  };
+  addEventListener('scroll', () => {
+    if(queued) return;
+    queued = true;
+    requestAnimationFrame(mark);
+  }, {passive: true});
+  mark();
+}
+
 function wireBuilder(){
   const drop = document.getElementById('drop'), input = document.getElementById('shot');
   document.getElementById('shot-btn').onclick = () => input.click();
@@ -1273,6 +1306,7 @@ function capWarning(n){
   buildStatic();
   buildPicks();
   wireBuilder();
+  wireNav();
   writeRows([]);
 
   const applyAll = v => { for(const [k,e] of Object.entries(RULES.events)) STATE[k] = v ? e.per_week : 0;
