@@ -221,6 +221,36 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .rowhint{margin:-2px 0 10px; font-size:12.5px; color:var(--dim); max-width:62ch}
   #rows-text{white-space:pre; overflow-x:auto}
 
+  .me-hint{font-size:12.5px; color:var(--faint); flex-basis:100%}
+  .me-pick select{font-family:var(--body)}
+
+  /* On a phone a table is a sideways-scrolling trap, so each row becomes a card
+     and every cell carries the column name it lost with the header. */
+  @media (max-width:620px){
+    .scroll{border:0; background:none; overflow-x:visible}
+    .scroll table{min-width:0; display:block}
+    .scroll thead{display:none}
+    .scroll tbody{display:block}
+    .scroll tbody tr{
+      display:grid; grid-template-columns:auto 1fr; gap:4px 14px;
+      border:1px solid var(--line); background:var(--surface);
+      padding:12px 14px; margin-bottom:10px;
+    }
+    .scroll tbody td{
+      display:contents; box-shadow:none; padding:0;
+    }
+    .scroll tbody td::before{
+      content:attr(data-label);
+      font-family:var(--mono); font-size:10px; letter-spacing:.14em; text-transform:uppercase;
+      color:var(--faint); padding-top:2px;
+    }
+    .scroll tbody td[data-label=""]::before{content:none}
+    .scroll tbody td.num{text-align:left}
+    .scroll tbody tr.afford, .scroll tbody tr.due{box-shadow:inset 2px 0 0 var(--gold)}
+    .me-body{grid-template-columns:1fr 1fr}
+    nav.bar a{padding:13px 10px}
+  }
+
   footer{padding-block:34px 0; border-top:1px solid var(--line); color:var(--faint); font-size:13px}
 
   @media (max-width:560px){
@@ -234,12 +264,10 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 
 <div class="wrap">
   <nav class="bar">
-    <a href="#standings">Standings</a>
-    <a href="#events">Check-ins</a>
-    <a href="#week">This week</a>
-    <a href="#earn">Earning</a>
     <a href="#vault">The vault</a>
-    <a href="#loot">Loot prices</a>
+    <a href="#standings">Standings</a>
+    <a href="#week">This week</a>
+    <a href="#events">Check-ins</a>
     <a href="#post" class="officer">Officers</a>
   </nav>
 
@@ -251,20 +279,28 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 
   <div id="drift"></div>
 
-  <div class="tiles">
-    <div class="tile"><span class="k">Full week</span><span class="v" id="t-full">—</span><span class="n">every spawn</span></div>
-    <div class="tile"><span class="k">Scheduled only</span><span class="v" id="t-sched">—</span><span class="n">no grinding</span></div>
-    <div class="tile"><span class="k">Balance cap</span><span class="v" id="t-cap">—</span><span class="n">anything above is not credited</span></div>
-  </div>
-
   <div class="me">
     <div class="me-pick">
-      <label for="me">Who are you</label>
+      <label for="me">Your name</label>
       <select id="me"><option value="">Loading the roster…</option></select>
-      <button type="button" class="clear-me" id="me-clear" hidden>Forget me</button>
+      <button type="button" class="clear-me" id="me-clear" hidden>Not me</button>
+      <span class="me-hint" id="me-hint">Pick yourself once and this device remembers you.</span>
     </div>
     <div class="me-body" id="me-body" hidden></div>
   </div>
+
+  <section id="vault">
+    <h2>The vault</h2>
+    <p class="sub" id="vault-sub">Loading what is posted…</p>
+    <div class="scroll">
+      <table id="vault-table">
+        <thead><tr>
+          <th>Item</th><th class="num">Qty</th><th>How</th><th class="num">Price / bid</th><th>State</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
 
   <section id="standings">
     <h2>Standings</h2>
@@ -277,6 +313,12 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
       </table>
     </div>
   </section>
+
+  <div class="tiles">
+    <div class="tile"><span class="k">Full week</span><span class="v" id="t-full">—</span><span class="n">every spawn</span></div>
+    <div class="tile"><span class="k">Scheduled only</span><span class="v" id="t-sched">—</span><span class="n">no grinding</span></div>
+    <div class="tile"><span class="k">Balance cap</span><span class="v" id="t-cap">—</span><span class="n">anything above is not credited</span></div>
+  </div>
 
   <section id="events">
     <h2>Latest check-ins</h2>
@@ -322,19 +364,6 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </section>
 
-  <section id="vault">
-    <h2>The vault</h2>
-    <p class="sub" id="vault-sub">Loading what is posted…</p>
-    <div class="scroll">
-      <table id="vault-table">
-        <thead><tr>
-          <th>Item</th><th class="num">Qty</th><th>How</th><th class="num">Price / bid</th><th>State</th>
-        </tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
   <section id="loot">
     <h2>What AP buys</h2>
     <p class="sub">Guild storage holds 100 slots and items expire after 30 days, so the vault empties every week. Nothing may cost more than one week of full activity — the page checks that against the rates above.</p>
@@ -356,8 +385,17 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </details>
 
-  <section id="post">
-    <h2>Build the loot post</h2>
+  <details class="fold" id="setup">
+    <summary>Where the numbers come from</summary>
+    <div class="note">
+      <p style="margin:0 0 10px"><strong>Earning is automatic.</strong> Chielo writes every closed check-in to the guild AP sheet — one row per event with its turnout, plus a running AP total per member. This page reads those tabs; nobody types a point in.</p>
+      <p style="margin:0 0 10px"><strong>Spending is not.</strong> An officer adds a row to <code>AP_LEDGER</code> when someone wins an item: <code>date</code>, <code>member</code>, <code>item</code>, <code>qty</code>, <code>ap</code>, <code>note</code>. <code>ap</code> is negative for a purchase or a void, positive for a correction. Balance is what Chielo credited minus what the ledger took away, capped at <span id="cap-ref">—</span>.</p>
+      <p style="margin:0">Fixed-price items always cost their listed price, but an auction winner pays their own bid — so the <code>ap</code> column is what counts, and <code>item</code> links the row to the loot board for checking.</p>
+    </div>
+  </details>
+
+  <details class="fold" id="post">
+    <summary>Officers &middot; build the loot post</summary>
     <p class="sub">For officers, after the Guild Dungeon run. Tick what came out of storage, set quantities, copy the post into Discord. Prices and auction minimums come from the rules, so they are never typed wrong.</p>
 
     <div class="builder">
@@ -387,15 +425,6 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
           <span id="rows-note"></span>
         </div>
       </div>
-    </div>
-  </section>
-
-  <details class="fold" id="setup">
-    <summary>Where the numbers come from</summary>
-    <div class="note">
-      <p style="margin:0 0 10px"><strong>Earning is automatic.</strong> Chielo writes every closed check-in to the guild AP sheet — one row per event with its turnout, plus a running AP total per member. This page reads those tabs; nobody types a point in.</p>
-      <p style="margin:0 0 10px"><strong>Spending is not.</strong> An officer adds a row to <code>AP_LEDGER</code> when someone wins an item: <code>date</code>, <code>member</code>, <code>item</code>, <code>qty</code>, <code>ap</code>, <code>note</code>. <code>ap</code> is negative for a purchase or a void, positive for a correction. Balance is what Chielo credited minus what the ledger took away, capped at <span id="cap-ref">—</span>.</p>
-      <p style="margin:0">Fixed-price items always cost their listed price, but an auction winner pays their own bid — so the <code>ap</code> column is what counts, and <code>item</code> links the row to the loot board for checking.</p>
     </div>
   </details>
 
@@ -537,6 +566,7 @@ function buildEarnTable(){
     tb.appendChild(tr);
     STATE[key]=0;
   }
+  labelCells('#earn-table');
 }
 
 function refresh(){
@@ -591,6 +621,7 @@ function buildLoot(baseline){
     if(cost > baseline) td3.style.color = 'var(--crimson)';
     tb.appendChild(tr);
   }
+  labelCells('#loot-table');
 }
 
 function buildStatic(){
@@ -893,6 +924,7 @@ function setMe(name){
   save(ME_KEY, ME ? ME.name : null);
   document.getElementById('me').value = ME ? ME.name : '';
   document.getElementById('me-clear').hidden = !ME;
+  document.getElementById('me-hint').hidden = !!ME;
 
   const body = document.getElementById('me-body');
   body.textContent = '';
@@ -931,6 +963,15 @@ function fillPicker(){
   const remembered = saved(ME_KEY);
   if(remembered && ROSTER.some(m => m.name === remembered)) setMe(remembered);
 }
+// Phone layout drops the header row, so each cell carries its column name.
+function labelCells(sel){
+  const table = document.querySelector(sel);
+  if(!table) return;
+  const heads = [...table.querySelectorAll('thead th')].map(th => th.textContent.trim());
+  for(const tr of table.querySelectorAll('tbody tr'))
+    [...tr.children].forEach((td, i) => { td.dataset.label = td.colSpan > 1 ? '' : (heads[i] || ''); });
+}
+
 function renderRoster(filter){
   const tb = document.querySelector('#roster-table tbody');
   tb.textContent='';
@@ -956,6 +997,7 @@ function renderRoster(filter){
     tr.appendChild(td);
     tb.appendChild(tr);
   });
+  labelCells('#roster-table');
 }
 
 // The tab carries a two-row header: row h names each period ("Cave 04/20-05/03"),
@@ -1178,6 +1220,7 @@ function buildVault(){
 
     tb.appendChild(tr);
   }
+  labelCells('#vault-table');
 }
 
 function buildEvents(){
@@ -1202,6 +1245,7 @@ function buildEvents(){
     tr.appendChild(ap);
     tb.appendChild(tr);
   }
+  labelCells('#events-table');
 }
 
 // If most of the guild blows past the cap, the AP rates don't match how
