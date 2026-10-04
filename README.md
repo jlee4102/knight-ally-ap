@@ -23,7 +23,9 @@ The page self-checks on load: a full week of activity must come to **1,086 AP** 
 
 The `PAYROLL - PASAHOD` tab of the alliance loot sheet. Its header is two rows: row 1 names each fortnight (`Cave 04/20-05/03`), row 2 marks which of its columns is the attendance count (`Att`). The page carries the period name across merged cells, takes the **rightmost** `Att` column of each kind, and multiplies by that event's `base_ap`.
 
-A new fortnight needs no code change — a new column shows up on its own.
+A new fortnight needs no code change — a new column shows up on its own, and the standings get a **Period** dropdown listing every range that has attendance in it, newest first.
+
+Cave and WD are paired by **date range**, never picked independently — `WD 8/24` has no Cave twin, and taking the newest of each would quietly mix two different fortnights. A range needs at least five members with check-ins before it is offered, so a half-entered column never shows up looking like nobody turned up.
 
 Three constants at the top of the `<script>` control it:
 

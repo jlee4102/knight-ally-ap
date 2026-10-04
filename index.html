@@ -159,6 +159,37 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .tick{font-family:var(--mono); font-size:10px; letter-spacing:.1em; text-transform:uppercase; color:var(--sage); display:block}
   .tick.no{color:var(--faint)}
 
+  .stand-bar{display:flex; gap:12px; align-items:center; flex-wrap:wrap}
+  .stand-bar label{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+  .stand-bar select{font-family:var(--mono); font-size:13px; padding:8px 10px}
+
+  /* loot post builder */
+  .builder{border:1px solid var(--line); background:var(--surface)}
+  .drop{padding:18px; border-bottom:1px solid var(--line); display:flex; gap:14px; align-items:center; flex-wrap:wrap}
+  .drop.over{background:var(--raise); box-shadow:inset 0 0 0 2px var(--gold-soft)}
+  .drop p{margin:0; color:var(--dim); font-size:13.5px; flex:1 1 220px}
+  .btn{background:var(--raise); border:1px solid var(--line); color:var(--text); font-family:var(--mono);
+    font-size:11px; letter-spacing:.12em; text-transform:uppercase; padding:10px 15px; cursor:pointer}
+  .btn:hover{border-color:var(--gold-soft); color:var(--gold)}
+  .btn[disabled]{color:var(--faint); cursor:default; border-color:var(--line)}
+  .btn.go{background:var(--gold-soft); border-color:var(--gold-soft); color:#15120a; font-weight:600}
+  .ocr-note{font-family:var(--mono); font-size:11.5px; color:var(--faint); flex-basis:100%}
+  .ocr-note.live{color:var(--gold)}
+  .picks{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:1px; background:var(--line)}
+  .pick{background:var(--surface); padding:11px 14px; display:flex; gap:11px; align-items:center}
+  .pick.on{background:var(--raise)}
+  .pick input[type=checkbox]{accent-color:var(--gold); width:16px; height:16px; flex:none}
+  .pick .nm{flex:1; font-size:13.5px; line-height:1.3}
+  .pick .nm small{display:block; color:var(--faint); font-family:var(--mono); font-size:10.5px}
+  .pick .nm em{font-style:normal; color:var(--gold); font-family:var(--mono); font-size:10px; letter-spacing:.1em}
+  .pick input[type=number]{width:56px; background:var(--ground); border:1px solid var(--line); color:var(--text);
+    font-family:var(--mono); font-size:13px; text-align:center; padding:5px 0}
+  .out{border-top:1px solid var(--line); padding:18px}
+  .out textarea{width:100%; min-height:210px; background:var(--ground); color:var(--text); border:1px solid var(--line);
+    font-family:var(--mono); font-size:12.5px; line-height:1.55; padding:13px; resize:vertical}
+  .out-bar{display:flex; gap:12px; align-items:center; flex-wrap:wrap; margin-top:12px}
+  .out-bar span{font-family:var(--mono); font-size:11px; color:var(--faint)}
+
   footer{padding-block:34px 0; border-top:1px solid var(--line); color:var(--faint); font-size:13px}
 
   @media (max-width:560px){
@@ -243,7 +274,11 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   <section id="standings">
     <h2>Standings</h2>
     <p class="sub" id="standings-sub">Loading the roster…</p>
-    <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
+    <div class="stand-bar">
+      <label for="period">Period</label>
+      <select id="period" disabled><option>Loading…</option></select>
+      <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
+    </div>
     <div class="scroll" style="margin-top:14px">
       <table id="roster-table">
         <thead><tr><th style="width:56px" class="num">#</th><th>Member</th><th class="num">Cave</th><th class="num">WD</th><th class="num">AP</th></tr></thead>
@@ -257,6 +292,30 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <div class="grid2" style="margin-top:20px">
       <ol class="cycle" id="cycle"></ol>
       <dl class="rules" id="rulelist"></dl>
+    </div>
+  </section>
+
+  <section id="post">
+    <h2>Build the loot post</h2>
+    <p class="sub">For officers, after the Guild Dungeon run. Tick what came out of storage, set quantities, copy the post into Discord. Prices and auction minimums come from the rules, so they are never typed wrong.</p>
+
+    <div class="builder">
+      <div class="drop" id="drop">
+        <p>Drop a screenshot of the storage tab here to pre-tick the list. It reads the item names and guesses — always check what it ticked before you copy.</p>
+        <input type="file" id="shot" accept="image/*" hidden>
+        <button type="button" class="btn" id="shot-btn">Read a screenshot</button>
+        <span class="ocr-note" id="ocr-note" hidden></span>
+      </div>
+      <div class="picks" id="picks"></div>
+      <div class="out">
+        <label for="post-text" class="lbl" style="font-family:var(--mono);font-size:10.5px;letter-spacing:.16em;text-transform:uppercase;color:var(--faint)">The post</label>
+        <textarea id="post-text" spellcheck="false" style="margin-top:8px"></textarea>
+        <div class="out-bar">
+          <button type="button" class="btn go" id="copy-post">Copy post</button>
+          <button type="button" class="btn" id="reset-post">Clear all</button>
+          <span id="copy-note"></span>
+        </div>
+      </div>
     </div>
   </section>
 
@@ -494,6 +553,194 @@ function checkDrift(){
   document.getElementById('drift').appendChild(w);
 }
 
+
+/* ---------------- loot post builder ---------------- */
+
+const QTY = {};   // item name -> quantity, 0 means not in the post
+
+function itemCost(it){ return it.price ?? it.min_bid ?? it.min_per_unit; }
+
+function buildPicks(){
+  const box = document.getElementById('picks');
+  box.textContent = '';
+  RULES.items.forEach((it, i) => {
+    const row = el('label','pick');
+    const cb = document.createElement('input');
+    cb.type = 'checkbox';
+    const nm = el('div','nm');
+    nm.appendChild(document.createTextNode(it.name));
+    nm.appendChild(el('small', null,
+      (it.method === 'fixed' ? itemCost(it) + ' AP'
+                             : 'from ' + itemCost(it) + ' AP, +' + (it.bid_step || RULES.auction_rules.default_bid_step))
+      + (it.unit ? ' \u00b7 ' + it.unit : '')));
+    const qty = document.createElement('input');
+    qty.type = 'number'; qty.min = '1'; qty.value = '1'; qty.disabled = true;
+    qty.setAttribute('aria-label', 'How many ' + it.name);
+
+    const sync = () => {
+      row.classList.toggle('on', cb.checked);
+      qty.disabled = !cb.checked;
+      QTY[it.name] = cb.checked ? Math.max(1, Number(qty.value) || 1) : 0;
+      writePost();
+    };
+    cb.addEventListener('change', sync);
+    qty.addEventListener('input', sync);
+    row.append(cb, nm, qty);
+    row.dataset.index = i;
+    box.appendChild(row);
+    QTY[it.name] = 0;
+  });
+}
+
+function writePost(){
+  const picked = RULES.items.filter(it => QTY[it.name] > 0);
+  const ta = document.getElementById('post-text');
+  if(!picked.length){
+    ta.value = '';
+    ta.placeholder = 'Tick an item above and the post writes itself.';
+    return;
+  }
+
+  const fixed = picked.filter(it => it.method === 'fixed');
+  const bids  = picked.filter(it => it.method !== 'fixed');
+  const step  = RULES.auction_rules.default_bid_step;
+  const L = [];
+  L.push('**JOLLIBEE LOOT \u2014 ' + new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long'}) + '**');
+  L.push('Guild Dungeon run is done, storage is open. Check your AP on the site before you claim.');
+
+  if(fixed.length){
+    L.push('', '__Fixed price \u2014 first to claim with enough AP__');
+    for(const it of fixed)
+      L.push('\u2022 ' + it.name + ' \u00d7' + QTY[it.name] + ' \u2014 **' + it.price + ' AP**'
+        + (it.unit ? ' ' + it.unit : '') + (it.channel ? '  \u2192 #' + it.channel : ''));
+    L.push('Unclaimed after ' + RULES.fixed_price_rules.unclaimed_after_hours + ' h goes to the '
+      + RULES.fixed_price_rules.unclaimed_goes_to + '.');
+  }
+
+  if(bids.length){
+    L.push('', '__Auction \u2014 closes in ' + RULES.auction_rules.duration_hours + ' h__');
+    for(const it of bids)
+      L.push('\u2022 ' + it.name + ' \u00d7' + QTY[it.name] + ' \u2014 min **' + itemCost(it) + ' AP**, bids rise by '
+        + (it.bid_step || step) + (it.unit ? ' (' + it.unit + ')' : '')
+        + (it.channel ? '  \u2192 #' + it.channel : ''));
+    L.push('Highest bid wins and pays their own bid; ' + RULES.auction_rules.tiebreak
+      + '. No bids and it relists at the minimum as fixed price.');
+  }
+
+  L.push('', 'AP cannot be transferred. Balances: ' + location.origin + location.pathname);
+  ta.value = L.join('\n');
+}
+
+function setPick(i, qty){
+  const row = document.querySelector('.pick[data-index="' + i + '"]');
+  if(!row) return;
+  const cb = row.querySelector('input[type=checkbox]');
+  row.querySelector('input[type=number]').value = qty || 1;
+  cb.checked = true;
+  cb.dispatchEvent(new Event('change'));
+}
+
+/* ---------------- screenshot pre-fill ---------------- */
+
+const norm = t => t.toLowerCase().replace(/[^a-z0-9 ]+/g, ' ').replace(/\s+/g, ' ').trim();
+const STOP = new Set(['of','the','per','and','chest','selection']);
+
+// OCR of a game screenshot is never clean, but it does not have to be: the only
+// candidates are the items in the rules file. Score each line against each item by
+// how many of the item's distinctive words survived, and take a clear winner only.
+function matchItem(line){
+  const words = new Set(norm(line).split(' ').filter(w => w.length > 2));
+  if(!words.size) return null;
+  let best = null, bestScore = 0, runnerUp = 0;
+  RULES.items.forEach((it, i) => {
+    const key = norm(it.name).split(' ').filter(w => w.length > 2 && !STOP.has(w));
+    if(!key.length) return;
+    const score = key.filter(w => words.has(w)).length / key.length;
+    if(score > bestScore){ runnerUp = bestScore; bestScore = score; best = i; }
+    else if(score > runnerUp) runnerUp = score;
+  });
+  return (bestScore >= 0.6 && bestScore - runnerUp >= 0.2) ? {index: best} : null;
+}
+
+function readQty(line){
+  const m = line.match(/[x\u00d7]\s*(\d{1,3})\b/i) || line.match(/\b(\d{1,3})\s*[x\u00d7]/i);
+  return m ? Number(m[1]) : 1;
+}
+
+async function readScreenshot(file){
+  const note = document.getElementById('ocr-note');
+  const show = (t, live) => { note.hidden = false; note.textContent = t; note.classList.toggle('live', !!live); };
+  show('Loading the reader\u2026', true);
+  try{
+    if(!window.Tesseract){
+      await new Promise((ok, fail) => {
+        const sc = document.createElement('script');
+        sc.src = 'https://cdnjs.cloudflare.com/ajax/libs/tesseract.js/7.0.0/tesseract.min.js';
+        sc.onload = ok;
+        sc.onerror = () => fail(new Error('reader'));
+        document.head.appendChild(sc);
+      });
+    }
+    show('Reading the screenshot\u2026', true);
+    const res = await Tesseract.recognize(file, 'eng', {
+      logger: m => { if(m.status === 'recognizing text') show('Reading the screenshot\u2026 ' + Math.round(m.progress * 100) + '%', true); }
+    });
+    const hits = new Map();
+    for(const line of ((res.data && res.data.text) || '').split('\n')){
+      const m = matchItem(line);
+      if(m) hits.set(m.index, Math.max(hits.get(m.index) || 0, readQty(line)));
+    }
+    if(!hits.size){ show('Nothing recognised \u2014 tick the items by hand.'); return; }
+    for(const [i, qty] of hits) setPick(i, qty);
+    show(hits.size + (hits.size === 1 ? ' item ticked' : ' items ticked')
+      + ' \u2014 check them against the screenshot before you copy.');
+  }catch(err){
+    show('Could not read that image. Tick the items by hand.');
+  }
+}
+
+function wireBuilder(){
+  const drop = document.getElementById('drop'), input = document.getElementById('shot');
+  document.getElementById('shot-btn').onclick = () => input.click();
+  input.onchange = () => { if(input.files[0]) readScreenshot(input.files[0]); input.value = ''; };
+
+  for(const ev of ['dragenter','dragover'])
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); });
+  for(const ev of ['dragleave','drop'])
+    drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); });
+  drop.addEventListener('drop', e => {
+    const f = [...((e.dataTransfer && e.dataTransfer.files) || [])].find(f => f.type.startsWith('image/'));
+    if(f) readScreenshot(f);
+  });
+  // Officers screenshot to the clipboard more often than they save a file.
+  document.addEventListener('paste', e => {
+    const f = [...((e.clipboardData && e.clipboardData.files) || [])].find(f => f.type.startsWith('image/'));
+    if(f) readScreenshot(f);
+  });
+
+  document.getElementById('reset-post').onclick = () => {
+    for(const row of document.querySelectorAll('.pick')){
+      const cb = row.querySelector('input[type=checkbox]');
+      if(cb.checked){ cb.checked = false; cb.dispatchEvent(new Event('change')); }
+    }
+    document.getElementById('ocr-note').hidden = true;
+    document.getElementById('copy-note').textContent = '';
+  };
+
+  document.getElementById('copy-post').onclick = async () => {
+    const ta = document.getElementById('post-text'), note = document.getElementById('copy-note');
+    if(!ta.value){ note.textContent = 'Nothing ticked yet.'; return; }
+    try{
+      await navigator.clipboard.writeText(ta.value);
+      note.textContent = 'Copied. Paste it into Discord.';
+    }catch(e){
+      ta.select();
+      note.textContent = 'Selected \u2014 press Ctrl+C.';
+    }
+  };
+}
+
+
 const DAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const ME_KEY = 'jollibee-ap-me';
 let ME = null, ROSTER = [];
@@ -585,10 +832,13 @@ function renderRoster(filter){
   });
 }
 
-// The tab carries a two-row header: row h names each period ("Cave 03/09-03/22"),
+// The tab carries a two-row header: row h names each period ("Cave 04/20-05/03"),
 // row h+1 marks its columns ("Att", "Pay"). Merged cells leave the period name only
-// on its first column, so carry it forward, then take the newest Att column per kind.
-function readPeriod(rows){
+// on its first column, so carry it forward. Columns are in date order left to right.
+//
+// Cave and WD are picked by matching date range, never independently: "WD 8/24" has
+// no Cave twin, and pairing the newest of each would mix two different fortnights.
+function readSheet(rows){
   const h = rows.findIndex(r => r.some(c => /^(IGN|Name)$/i.test(c.trim())));
   if(h < 0) throw new Error('no IGN column');
   const period = rows[h].map(c => c.trim());
@@ -596,52 +846,84 @@ function readPeriod(rows){
   const sub = (rows[h+1] || []).map(c => c.trim());
   const nameAt = period.findIndex(c => /^(IGN|Name)$/i.test(c));
 
-  const at = COLUMNS.map(c => {
-    let i = -1;
-    for(let j=0;j<period.length;j++)
-      if(sub[j] === ATT && period[j].startsWith(c.prefix + ' ')) i = j;
-    return {...c, i, label: i < 0 ? null : period[i]};
-  });
-  if(at.every(c => c.i < 0)) throw new Error('no attendance columns');
+  const order = [], byRange = new Map();
+  for(let j=0;j<period.length;j++){
+    if(sub[j] !== ATT) continue;
+    const col = COLUMNS.find(c => period[j].startsWith(c.prefix + ' '));
+    if(!col) continue;
+    const range = period[j].slice(col.prefix.length).trim();
+    if(!byRange.has(range)){ byRange.set(range, []); order.push(range); }
+    byRange.get(range).push({...col, j});
+  }
 
-  const seen = new Set();
-  const members = rows.slice(h+2).map(r => {
-    const name = (r[nameAt]||'').trim();
-    if(!name || seen.has(name)) return null;
-    const tag = (name.match(/^\[([^\]]+)\]/) || [,null])[1];
-    if(GUILD_TAG !== 'ALL' && tag !== GUILD_TAG) return null;
-    seen.add(name);
-    const att = {}; let earned = 0;
-    for(const c of at){
-      const n = c.i < 0 ? 0 : Number((r[c.i]||'').replace(/[^0-9.]/g,'')) || 0;
-      att[c.event] = n;
-      earned += n * RULES.events[c.event].base_ap;
-    }
-    return {name, att, earned};
-  }).filter(Boolean);
+  const body = rows.slice(h+2).filter(r => (r[nameAt]||'').trim());
+  const num = v => Number((v||'').replace(/[^0-9.]/g,'')) || 0;
 
-  return {members, labels: at.filter(c => c.i >= 0).map(c => c.label)};
+  // A half-entered column is worse than no column: it would show most of the guild
+  // on zero and read as "nobody turned up". Require a real number of entries.
+  const MIN_ENTRIES = 5;
+  const periods = order.filter(range =>
+    body.filter(r => byRange.get(range).some(c => num(r[c.j]) > 0)).length >= MIN_ENTRIES);
+  if(!periods.length) throw new Error('no period has attendance filled in');
+
+  const membersFor = range => {
+    const cols = byRange.get(range), seen = new Set();
+    return body.map(r => {
+      const name = (r[nameAt]||'').trim();
+      if(seen.has(name)) return null;
+      seen.add(name);
+      const tag = (name.match(/^\[([^\]]+)\]/) || [,null])[1];
+      if(GUILD_TAG !== 'ALL' && tag !== GUILD_TAG) return null;
+      const att = {}; let earned = 0;
+      for(const c of COLUMNS) att[c.event] = 0;
+      for(const c of cols){
+        const n = num(r[c.j]);
+        att[c.event] = n;
+        earned += n * RULES.events[c.event].base_ap;
+      }
+      return {name, att, earned};
+    }).filter(Boolean);
+  };
+
+  return {periods, membersFor, kinds: range => byRange.get(range).map(c => c.short)};
+}
+
+let SHEET = null;
+
+function showPeriod(range){
+  ROSTER = SHEET.membersFor(range);
+  ROSTER.sort((a,b) => b.earned - a.earned || a.name.localeCompare(b.name));
+  const logged = ROSTER.filter(m => m.earned > 0).length;
+  const newest = range === SHEET.periods[SHEET.periods.length-1];
+  document.getElementById('standings-sub').textContent =
+    `${ROSTER.length} Jollibee members. Showing ${SHEET.kinds(range).join(' and ')} attendance for ${range}`
+    + `, ${logged} with check-ins. `
+    + (newest ? 'This is the most recent period filled in on the sheet.' : 'Newer periods exist on the sheet.');
+  document.getElementById('code-ex').textContent = range;
+
+  const over = ROSTER.filter(m => m.earned > RULES.balance_cap).length;
+  if(over > ROSTER.length/4) capWarning(over);
+
+  const me = ME && ME.name;
+  fillPicker();
+  if(me) setMe(me); else { refresh(); renderRoster(document.getElementById('search').value); }
 }
 
 async function loadRoster(){
-  const sub = document.getElementById('standings-sub');
   try{
-    const read = readPeriod(parseCSV(await (await fetch(tabUrl())).text()));
-    ROSTER = read.members;
-    ROSTER.sort((a,b) => b.earned - a.earned || a.name.localeCompare(b.name));
-    const logged = ROSTER.filter(m => m.earned > 0).length;
-    document.getElementById('code-ex').textContent = read.labels.join(' + ');
-    sub.textContent = `${ROSTER.length} members. Newest attendance on the sheet: ${read.labels.join(' and ')}`
-      + (logged ? `, ${logged} with check-ins logged. Updates whenever the sheet does.`
-                : `. No check-ins entered for it yet.`);
-
-    const over = ROSTER.filter(m => m.earned > RULES.balance_cap).length;
-    if(over > ROSTER.length/4) capWarning(over);
+    SHEET = readSheet(parseCSV(await (await fetch(tabUrl())).text()));
+    const sel = document.getElementById('period');
+    sel.textContent = '';
+    [...SHEET.periods].reverse().forEach(r => { sel.appendChild(el('option', null, r)).value = r; });
+    sel.value = SHEET.periods[SHEET.periods.length-1];
+    sel.onchange = () => showPeriod(sel.value);
+    sel.disabled = false;
+    showPeriod(sel.value);
   }catch(err){
-    sub.textContent = 'Could not read "'+PERIOD_TAB+'". Check the tab name and that the sheet is shared as "anyone with the link".';
+    document.getElementById('standings-sub').textContent =
+      'Could not read attendance from the sheet (' + err.message + '). Check the tab is still shared as "anyone with the link".';
+    renderRoster('');
   }
-  fillPicker();
-  renderRoster('');
 }
 
 // If most of the guild blows past the cap, the AP rates don't match how
@@ -662,6 +944,8 @@ function capWarning(n){
   checkDrift();
   buildEarnTable();
   buildStatic();
+  buildPicks();
+  wireBuilder();
 
   const applyAll = v => { for(const [k,e] of Object.entries(RULES.events)) STATE[k] = v ? e.per_week : 0;
     for(const tr of document.querySelectorAll('#earn-table tbody tr')) tr.querySelector('input').value = STATE[tr.dataset.key];
