@@ -26,12 +26,25 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   h1,h2,h3{font-family:var(--display); text-wrap:balance; margin:0; font-weight:600}
   a{color:var(--gold)}
 
-  /* ---- header ---- */
-  header.crest{
-    padding-block:44px 30px;
-    border-bottom:1px solid var(--line);
-    display:grid; gap:14px;
+  /* ---- sticky nav ---- */
+  nav.bar{
+    position:sticky; top:env(safe-area-inset-top, 0px); z-index:20;
+    background:color-mix(in srgb, var(--ground) 92%, transparent);
+    backdrop-filter:blur(8px); border-bottom:1px solid var(--line);
+    margin-inline:-20px; padding:0 20px;
+    display:flex; gap:4px; overflow-x:auto; scrollbar-width:none;
   }
+  nav.bar::-webkit-scrollbar{display:none}
+  nav.bar a{
+    font-family:var(--mono); font-size:10.5px; letter-spacing:.14em; text-transform:uppercase;
+    color:var(--dim); text-decoration:none; padding:14px 12px; white-space:nowrap;
+    border-bottom:2px solid transparent;
+  }
+  nav.bar a:hover{color:var(--gold); border-bottom-color:var(--gold-soft)}
+  nav.bar a.officer{color:var(--faint); margin-left:auto}
+
+  /* ---- header ---- */
+  header.crest{ padding-block:38px 26px; display:grid; gap:13px }
   .tag{
     font-family:var(--mono); font-size:11px; letter-spacing:.22em; text-transform:uppercase;
     color:var(--gold); display:flex; gap:10px; flex-wrap:wrap; align-items:center;
@@ -42,15 +55,16 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .lede{color:var(--dim); max-width:62ch; margin:0}
 
   /* ---- tiles ---- */
-  .tiles{display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:var(--line);
-    border:1px solid var(--line); margin-block:30px}
-  .tile{background:var(--surface); padding:20px 18px; display:grid; gap:4px}
-  .tile .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.18em; text-transform:uppercase; color:var(--faint)}
-  .tile .v{font-family:var(--mono); font-size:30px; font-weight:600; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.1}
-  .tile .n{font-size:13.5px; color:var(--dim); line-height:1.45}
+  .tiles{display:flex; flex-wrap:wrap; gap:0 34px; padding-block:18px;
+    border-block:1px solid var(--line)}
+  .tile{display:flex; gap:9px; align-items:baseline; padding-block:5px}
+  .tile .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
+  .tile .v{font-family:var(--mono); font-size:19px; font-weight:600; color:var(--gold); font-variant-numeric:tabular-nums}
+  .tile .n{font-size:13px; color:var(--faint)}
 
   /* ---- sections ---- */
-  section{padding-block:38px; border-top:1px solid var(--line)}
+  section{padding-block:34px; border-top:1px solid var(--line)}
+  section:target{scroll-margin-top:52px}
   section > h2{font-size:23px; letter-spacing:.02em}
   .sub{color:var(--dim); font-size:14.5px; margin:8px 0 22px; max-width:64ch}
 
@@ -114,6 +128,13 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .toggles input{accent-color:var(--gold); width:15px; height:15px}
 
   .grid2{display:grid; grid-template-columns:repeat(auto-fit,minmax(260px,1fr)); gap:22px}
+  details.fold{border-top:1px solid var(--line); padding-block:20px}
+  details.fold > summary{font-family:var(--display); font-size:19px; cursor:pointer; list-style:none; color:var(--text)}
+  details.fold > summary::-webkit-details-marker{display:none}
+  details.fold > summary::before{content:'+ '; color:var(--gold); font-family:var(--mono)}
+  details.fold[open] > summary::before{content:'\2212 '}
+  details.fold > *:not(summary){margin-top:16px}
+
   .note{border-left:2px solid var(--gold-soft); padding:2px 0 2px 16px; color:var(--dim); font-size:14.5px}
   .note strong{color:var(--text); font-weight:600}
   code{font-family:var(--mono); font-size:12.5px; background:var(--raise); padding:1.5px 5px; color:var(--text)}
@@ -131,11 +152,11 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   dl.rules dd{margin:3px 0 0; font-size:14.5px}
 
   /* who-am-i panel */
-  .me{border:1px solid var(--line); background:var(--surface); margin-block:30px}
-  .me-pick{display:flex; gap:12px; align-items:center; flex-wrap:wrap; padding:16px 18px}
+  .me{margin-block:26px 0}
+  .me-pick{display:flex; gap:11px; align-items:center; flex-wrap:wrap; padding:0 0 14px}
   .me-pick label{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
   .me-pick select{flex:1 1 200px; max-width:320px; font-family:var(--body); font-size:15px; padding:8px 10px}
-  .me-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(150px,1fr)); gap:1px; background:var(--line); border-top:1px solid var(--line)}
+  .me-body{display:grid; grid-template-columns:repeat(auto-fit,minmax(145px,1fr)); gap:1px; background:var(--line); border:1px solid var(--line)}
   .me-cell{background:var(--surface); padding:16px 18px; display:grid; gap:3px}
   .me-cell .k{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
   .me-cell .v{font-family:var(--mono); font-size:25px; font-weight:600; color:var(--gold); font-variant-numeric:tabular-nums; line-height:1.15}
@@ -202,6 +223,14 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 <body>
 
 <div class="wrap">
+  <nav class="bar">
+    <a href="#standings">Standings</a>
+    <a href="#week">This week</a>
+    <a href="#earn">Earning</a>
+    <a href="#loot">Loot prices</a>
+    <a href="#post" class="officer">Officers</a>
+  </nav>
+
   <header class="crest">
     <div class="tag"><span>Jollibee</span><span class="sep">/</span><span>102 Knight Ally</span><span class="sep">/</span><span>Union UDI</span></div>
     <h1>Activity Points<em>Show up. Earn. Claim the vault.</em></h1>
@@ -211,9 +240,9 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   <div id="drift"></div>
 
   <div class="tiles">
-    <div class="tile"><span class="k">Full week</span><span class="v" id="t-full">—</span><span class="n">Everything, every spawn. The ceiling on one week's earning.</span></div>
-    <div class="tile"><span class="k">Scheduled only</span><span class="v" id="t-sched">—</span><span class="n">Crusade, GvG, Guild Dungeon, Epic Dungeon, World Boss. No grinding.</span></div>
-    <div class="tile"><span class="k">Balance cap</span><span class="v" id="t-cap">—</span><span class="n">AP above the cap is not credited. Spend before you stockpile.</span></div>
+    <div class="tile"><span class="k">Full week</span><span class="v" id="t-full">—</span><span class="n">every spawn</span></div>
+    <div class="tile"><span class="k">Scheduled only</span><span class="v" id="t-sched">—</span><span class="n">no grinding</span></div>
+    <div class="tile"><span class="k">Balance cap</span><span class="v" id="t-cap">—</span><span class="n">anything above is not credited</span></div>
   </div>
 
   <div class="me">
@@ -224,6 +253,22 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
     <div class="me-body" id="me-body" hidden></div>
   </div>
+
+  <section id="standings">
+    <h2>Standings</h2>
+    <p class="sub" id="standings-sub">Loading the roster…</p>
+    <div class="stand-bar">
+      <label for="period">Period</label>
+      <select id="period" disabled><option>Loading…</option></select>
+      <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
+    </div>
+    <div class="scroll" style="margin-top:14px">
+      <table id="roster-table">
+        <thead><tr><th style="width:56px" class="num">#</th><th>Member</th><th class="num">Cave</th><th class="num">WD</th><th class="num">AP</th></tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
 
   <section id="week">
     <h2>This week</h2>
@@ -271,29 +316,13 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </section>
 
-  <section id="standings">
-    <h2>Standings</h2>
-    <p class="sub" id="standings-sub">Loading the roster…</p>
-    <div class="stand-bar">
-      <label for="period">Period</label>
-      <select id="period" disabled><option>Loading…</option></select>
-      <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
-    </div>
-    <div class="scroll" style="margin-top:14px">
-      <table id="roster-table">
-        <thead><tr><th style="width:56px" class="num">#</th><th>Member</th><th class="num">Cave</th><th class="num">WD</th><th class="num">AP</th></tr></thead>
-        <tbody></tbody>
-      </table>
-    </div>
-  </section>
-
-  <section id="how">
-    <h2>The weekly cycle</h2>
+  <details class="fold" id="how">
+    <summary>The weekly cycle, and the rules</summary>
     <div class="grid2" style="margin-top:20px">
       <ol class="cycle" id="cycle"></ol>
       <dl class="rules" id="rulelist"></dl>
     </div>
-  </section>
+  </details>
 
   <section id="post">
     <h2>Build the loot post</h2>
@@ -319,15 +348,15 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </section>
 
-  <section id="setup">
-    <h2>Where the numbers come from</h2>
+  <details class="fold" id="setup">
+    <summary>Where the numbers come from</summary>
     <p class="sub">Nothing is typed twice. The Chielo bot closes each boss check-in in Discord, the totals are entered on the alliance loot sheet, and this page reads that sheet and does the AP arithmetic.</p>
     <div class="note">
-      <p style="margin:0 0 10px"><strong>New fortnight?</strong> Nothing to do. The page takes the rightmost <code>Att</code> column of each kind, so a new period column appears here on its own. Currently reading <code id="code-ex">—</code>.</p>
+      <p style="margin:0 0 10px"><strong>New fortnight?</strong> Nothing to do. A new column on the sheet joins the Period dropdown on its own, and the page opens on the newest one. Currently reading <code id="code-ex">—</code>.</p>
       <p style="margin:0 0 10px"><strong>Other guilds</strong> on the sheet carry a tag like <code>[Horde]</code> or <code>[DM]</code>; Jollibee members have none, which is how this page tells them apart. Set <code>GUILD_TAG</code> in <code>index.html</code> to show a different guild, or to <code>'ALL'</code> for the whole alliance.</p>
       <p style="margin:0">Only Cave and WD have columns on the sheet. Crusade, GvG, Guild Dungeon and Epic Dungeon pay AP in the rules but are not counted in standings until they get a column — and because the sheet holds a fortnight total rather than a row per kill, caves turnout tiers cannot be applied. Every kill pays the flat rate.</p>
     </div>
-  </section>
+  </details>
 
   <footer>
     <p style="margin:0">Rates, prices and rules read live from <code>ap_rules.json</code>. Roster reads live from the 102 Knight Ally loot sheet. Disputes go to officers; the attendance log is the record.</p>
