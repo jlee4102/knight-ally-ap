@@ -857,8 +857,11 @@ function wireNav(){
   for(const a of links) a.addEventListener('click', () => open(a.getAttribute('href')));
   open(location.hash);
 
+  // Sorted by where they sit on the page, not by nav order: "the last section
+  // above the line" is only meaningful in document order, and the two differ.
   const targets = links.map(a => ({a, el: document.querySelector(a.getAttribute('href'))}))
-                       .filter(t => t.el);
+                       .filter(t => t.el)
+                       .sort((x, y) => x.el.offsetTop - y.el.offsetTop);
   let queued = false;
   const mark = () => {
     queued = false;
