@@ -133,18 +133,22 @@ check('a timestamp survives the round trip to the sheet and back',
   parseStamp(stamp(new Date(2026, 9, 4, 15, 49))).getHours(), 15);
 check('a blank closes cell does not crash the board', listing({5: ''}).closes, null);
 // qty and price_or_min are separate columns, so every comparison has to multiply.
-// Aura stones stack, so a lot of three is a real listing; skill books do not.
+// T3 crafting material stacks; skill books and aura stones do not.
 check('a lot of three under the per-item minimum is flagged',
-  listing({1: 'aura-stones', 2: '3', 6: 'sold', 7: 'NC | Chielo', 8: '300'}).flags.length, 1);
+  listing({1: 't3-crafting-material', 2: '3', 6: 'sold', 7: 'NC | Chielo', 8: '150'}).flags.length, 1);
 check('a lot of three at three times the minimum is fine',
-  listing({1: 'aura-stones', 2: '3', 6: 'sold', 7: 'NC | Chielo', 8: '750'}).flags.length, 0);
+  listing({1: 't3-crafting-material', 2: '3', 6: 'sold', 7: 'NC | Chielo', 8: '300'}).flags.length, 0);
 check('a fixed lot must be charged per item, times the quantity',
   listing({1: 'blessing', 2: '3', 3: 'fixed', 6: 'sold', 7: 'NC | Chielo', 8: '8'}).flags.length, 1);
 check('an item that never stacks is flagged if the sheet says it did',
   listing({1: 'skillbooks', 2: '2'}).flags.length, 1);
 check('one of a non-stacking item is fine', listing({1: 'skillbooks', 2: '1'}).flags.length, 0);
 check('the rules still record which loot never stacks',
-  RULES.items.filter(i => i.max_qty === 1).map(i => i.name), ['Skill book']);
+  RULES.items.filter(i => i.max_qty === 1).map(i => i.name),
+  ['Aura stone (red or green only)', 'Skill book']);
+check('a non-stacking item splits into one listing each',
+  (() => { const i = RULES.items.findIndex(x => x.channel === 'aura-stones');
+           return RULES.items[i].max_qty === 1 ? 3 : 1; })(), 3);
 check('a fixed lot charged correctly is fine',
   listing({1: 'blessing', 2: '3', 3: 'fixed', 6: 'sold', 7: 'NC | Chielo', 8: '24'}).flags.length, 0);
 

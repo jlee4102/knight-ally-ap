@@ -54,7 +54,7 @@ It checks what comes back rather than trusting it — a wrong number here is som
 
 An item with `"max_qty": 1` in `ap_rules.json` always drops on its own. The builder splits a reading of two into two separate listings rather than one line saying two, the quantity box will not go above the cap, and a sheet row claiming more is flagged on the vault board.
 
-Currently set on skill books. Add it to any other item that drops one at a time.
+Currently set on skill books and aura stones. Add it to any other item that drops one at a time.
 
 ### Known gaps
 

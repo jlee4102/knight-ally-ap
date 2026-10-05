@@ -79,7 +79,7 @@
     { "channel": "legend-scrolls", "name": "Legendary scroll (Arcane Scroll Selection Chest)", "method": "auction", "min_bid": 100, "bid_step": 25 },
     { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Pitchblack chest", "method": "fixed", "price": 100, "unit": "per chest" },
     { "channel": "t3-crafting-material", "name": "T3 crafting material", "method": "auction", "min_bid": 100, "bid_step": 25 },
-    { "channel": "aura-stones", "name": "Aura stone (red or green only)", "method": "auction", "min_bid": 250, "bid_step": 25 },
+    { "channel": "aura-stones", "name": "Aura stone (red or green only)", "method": "auction", "min_bid": 250, "bid_step": 25, "max_qty": 1 },
     { "channel": "source-of-wisdom", "name": "Source of Wisdom", "method": "fixed", "price": 150 },
     { "channel": "blessing", "name": "Blessing stone", "method": "fixed", "price": 8, "unit": "per stone" },
     { "channel": "remnants", "name": "Forgotten Remnant", "method": "fixed", "price": 8, "unit": "per remnant" },
