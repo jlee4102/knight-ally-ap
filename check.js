@@ -41,6 +41,29 @@ check('the bands run 1-3, 4-7 and 8 or more',
     !== '1-3,4-7,8-').map(([k]) => k), []);
 check('Cave 3 pays 20, 17 then 12',
   RULES.events.caves_3.low_turnout_bonus.map(t => t.ap), [20, 17, 12]);
+
+console.log('\nSplitting a pile into listings');
+// max_qty is the most that may go in one listing. addLot splits a reading into
+// whole lots plus a real remainder; this mirrors that loop.
+const split = (name, n) => {
+  const cap = RULES.items.find(i => i.name === name).max_qty;
+  const lots = [];
+  let left = n;
+  while (left > 0) { const take = Math.min(cap, left); lots.push(take); left -= take; }
+  return lots;
+};
+check('a pile of orbs becomes whole lots',
+  split('Glider material (Orbs of Winds)', 100), [25, 25, 25, 25]);
+check('the last lot is the remainder, not a rounded-up full one',
+  split('Glider material (Orbs of Winds)', 30), [25, 5]);
+check('a pile never grows in the splitting',
+  split('Glider material (Orbs of Winds)', 30).reduce((a, b) => a + b, 0), 30);
+check('crystals split in twenties',
+  split('Crystal of Liberation (Potential)', 45), [20, 20, 5]);
+check('loot that never stacks becomes one listing each', split('Skill book', 3), [1, 1, 1]);
+check('every cap is a whole number of at least one',
+  RULES.items.filter(i => 'max_qty' in i && !(Number.isInteger(i.max_qty) && i.max_qty >= 1))
+    .map(i => i.name), []);
 check('scheduled events alone are 575 AP', sched, 575);
 check('no price exceeds one week of full activity',
   RULES.items.filter(i => (i.price ?? i.min_bid ?? i.min_per_unit) > full).map(i => i.name), []);

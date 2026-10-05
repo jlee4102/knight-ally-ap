@@ -693,13 +693,21 @@ const lotsOf = i => LOTS.filter(l => l.i === i);
 
 function itemCost(it){ return it.price ?? it.min_bid ?? it.min_per_unit; }
 
-// Some loot never stacks — a skill book always drops on its own — so a reading of
-// two means two drops, which is two listings, not one line saying two.
+// max_qty is the most that may go in one listing. A skill book never stacks, so
+// its cap is 1 and two of them are two listings. Orbs and crystals arrive in
+// hundreds, so capping them splits one pile into lots several members can each
+// afford, instead of one listing only the richest can touch.
 function addLot(i, qty){
   const cap = RULES.items[i].max_qty || 0;
   let n = Math.max(1, Math.round(qty) || 1);
   if(cap){
-    for(let k = 0; k < Math.ceil(n / cap); k++) LOTS.push({i, qty: cap});
+    // Full lots, then the remainder. Rounding the last one up to a full lot would
+    // put items in the post that are not in storage.
+    while(n > 0){
+      const take = Math.min(cap, n);
+      LOTS.push({i, qty: take});
+      n -= take;
+    }
     return;
   }
   LOTS.push({i, qty: n});
