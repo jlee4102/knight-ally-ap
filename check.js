@@ -47,20 +47,26 @@ console.log('\nSplitting a pile into listings');
 // whole lots plus a real remainder; this mirrors that loop.
 const split = (name, n) => {
   const cap = RULES.items.find(i => i.name === name).max_qty;
-  const lots = [];
-  let left = n;
-  while (left > 0) { const take = Math.min(cap, left); lots.push(take); left -= take; }
-  return lots;
+  const full = Math.floor(n / cap);
+  return {lots: Array(full).fill(cap), leftover: n - full * cap};
 };
 check('a pile of orbs becomes whole lots',
-  split('Glider material (Orbs of Winds)', 100), [25, 25, 25, 25]);
-check('the last lot is the remainder, not a rounded-up full one',
-  split('Glider material (Orbs of Winds)', 30), [25, 5]);
-check('a pile never grows in the splitting',
-  split('Glider material (Orbs of Winds)', 30).reduce((a, b) => a + b, 0), 30);
-check('crystals split in twenties',
-  split('Crystal of Liberation (Potential)', 45), [20, 20, 5]);
-check('loot that never stacks becomes one listing each', split('Skill book', 3), [1, 1, 1]);
+  split('Glider material (Orbs of Winds)', 100).lots, [25, 25, 25, 25]);
+check('a pile that divides evenly leaves nothing over',
+  split('Glider material (Orbs of Winds)', 100).leftover, 0);
+// A part lot is not worth running a claim for; the odd ones go to the leader.
+check('a part lot is not listed', split('Glider material (Orbs of Winds)', 30).lots, [25]);
+check('what is left over is reported, not posted',
+  split('Glider material (Orbs of Winds)', 30).leftover, 5);
+check('a pile never grows in the splitting', (() => {
+  const r = split('Crystal of Liberation (Potential)', 45);
+  return r.lots.reduce((a, b) => a + b, 0) + r.leftover;
+})(), 45);
+check('too few for even one lot means nothing is listed',
+  split('Glider material (Orbs of Winds)', 10).lots, []);
+check('loot that never stacks becomes one listing each', split('Skill book', 3).lots, [1, 1, 1]);
+check('loot that never stacks can never leave a remainder',
+  split('Skill book', 3).leftover, 0);
 check('every cap is a whole number of at least one',
   RULES.items.filter(i => 'max_qty' in i && !(Number.isInteger(i.max_qty) && i.max_qty >= 1))
     .map(i => i.name), []);
