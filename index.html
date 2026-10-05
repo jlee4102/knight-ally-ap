@@ -1035,7 +1035,8 @@ async function readScreenshot(file){
 
 function wireNav(){
   const links = [...document.querySelectorAll('nav.bar a')];
-  const panels = [...document.querySelectorAll('[data-panel]')];
+  // The nav links carry data-panel too; hiding those would leave one link on screen.
+  const panels = [...document.querySelectorAll('[data-panel]')].filter(el => !el.closest('nav.bar'));
 
   // One panel at a time. Six sections stacked end to end meant scrolling past
   // everything you were not looking for to reach the thing you were.
