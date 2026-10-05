@@ -79,7 +79,7 @@
     { "channel": "legend-chest", "name": "Golden Insignia fragments (chest)", "method": "auction_batch", "min_per_unit": 6, "bid_step": 5, "unit": "per fragment" },
     { "channel": "legend-cape", "name": "Golden Insignia fragments (cape)", "method": "auction_batch", "min_per_unit": 6, "bid_step": 5, "unit": "per fragment" },
     { "channel": "legend-gloves", "name": "Golden Insignia fragments (gloves)", "method": "auction_batch", "min_per_unit": 6, "bid_step": 5, "unit": "per fragment" },
-    { "channel": "legend-scrolls", "name": "Legendary scroll (Arcane Scroll Selection Chest)", "method": "auction", "min_bid": 100, "bid_step": 25 },
+    { "channel": "legend-scrolls", "name": "Legendary scroll (Arcane Scroll Selection Chest)", "method": "auction", "min_bid": 50, "bid_step": 25 },
     { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Pitchblack chest", "method": "fixed", "price": 100, "unit": "per chest" },
     { "channel": "t3-crafting-material", "name": "T3 crafting material", "method": "auction", "min_bid": 100, "bid_step": 25 },
     { "channel": "aura-stones", "name": "Aura stone (red or green only)", "method": "auction", "min_bid": 250, "bid_step": 25, "max_qty": 1 },
