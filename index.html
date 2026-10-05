@@ -215,8 +215,19 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .pick .nm{flex:1; font-size:13.5px; line-height:1.3}
   .pick .nm small{display:block; color:var(--faint); font-family:var(--mono); font-size:10.5px}
   .pick .nm em{font-style:normal; color:var(--gold); font-family:var(--mono); font-size:10px; letter-spacing:.1em}
-  .pick input[type=number]{width:56px; background:var(--ground); border:1px solid var(--line); color:var(--text);
-    font-family:var(--mono); font-size:13px; text-align:center; padding:5px 0}
+  .pick .lots{font-style:normal; font-family:var(--mono); font-size:10px; letter-spacing:.1em;
+    text-transform:uppercase; color:var(--gold); white-space:nowrap}
+  .lots-wrap{border-top:1px solid var(--line); padding:16px 14px}
+  #lots{display:grid; gap:8px}
+  .lot{display:flex; gap:11px; align-items:center; background:var(--raise);
+    border:1px solid var(--line); padding:9px 12px}
+  .lot .nm{flex:1; font-size:13.5px; line-height:1.3}
+  .lot .nm small{display:block; color:var(--faint); font-family:var(--mono); font-size:10.5px}
+  .lot input[type=number]{width:62px; background:var(--ground); border:1px solid var(--line); color:var(--text);
+    font-family:var(--mono); font-size:14px; text-align:center; padding:6px 0}
+  .lot .x{background:none; border:1px solid var(--line); color:var(--faint); font-family:var(--mono);
+    font-size:15px; line-height:1; width:30px; height:30px; cursor:pointer; flex:none}
+  .lot .x:hover{color:var(--crimson); border-color:var(--crimson)}
   .out{border-top:1px solid var(--line); padding:18px}
   .out textarea{width:100%; min-height:210px; background:var(--ground); color:var(--text); border:1px solid var(--line);
     font-family:var(--mono); font-size:12.5px; line-height:1.55; padding:13px; resize:vertical}
@@ -414,6 +425,11 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
         <span class="ocr-note" id="ocr-note" hidden></span>
       </div>
       <div class="picks" id="picks"></div>
+      <div class="lots-wrap">
+        <span class="olbl">Going up this week &mdash; one line per stack</span>
+        <p class="rowhint" id="lots-empty">Tick an item above to add a stack, or read a screenshot. Two stacks of the same thing stay separate so they can go to two different people.</p>
+        <div id="lots"></div>
+      </div>
       <div class="out">
         <label for="post-text" class="olbl">1 &middot; The Discord post</label>
         <textarea id="post-text" spellcheck="false"></textarea>
@@ -667,9 +683,16 @@ function checkDrift(){
 
 /* ---------------- loot post builder ---------------- */
 
-const QTY = {};   // item name -> quantity, 0 means not in the post
+// One entry per stack in storage, not one per kind of item: five stacks of the same
+// scroll are five listings, each with its own quantity and its own row in the sheet.
+let LOTS = [];
+const lotsOf = i => LOTS.filter(l => l.i === i);
 
 function itemCost(it){ return it.price ?? it.min_bid ?? it.min_per_unit; }
+
+function addLot(i, qty){
+  LOTS.push({i, qty: Math.max(1, Math.round(qty) || 1)});
+}
 
 function buildPicks(){
   const box = document.getElementById('picks');
@@ -684,68 +707,106 @@ function buildPicks(){
       (it.method === 'fixed' ? itemCost(it) + ' AP'
                              : 'from ' + itemCost(it) + ' AP, +' + (it.bid_step || RULES.auction_rules.default_bid_step))
       + (it.unit ? ' \u00b7 ' + it.unit : '')));
-    const qty = document.createElement('input');
-    qty.type = 'number'; qty.min = '1'; qty.value = '1'; qty.disabled = true;
-    qty.setAttribute('aria-label', 'How many ' + it.name);
-
-    const sync = () => {
-      row.classList.toggle('on', cb.checked);
-      qty.disabled = !cb.checked;
-      QTY[it.name] = cb.checked ? Math.max(1, Number(qty.value) || 1) : 0;
-      writePost();
-    };
-    cb.addEventListener('change', sync);
-    qty.addEventListener('input', sync);
-    row.append(cb, nm, qty);
+    const count = el('em','lots','');
+    cb.addEventListener('change', () => {
+      if(cb.checked) addLot(i, 1);
+      else LOTS = LOTS.filter(l => l.i !== i);
+      refreshPost();
+    });
+    row.append(cb, nm, count);
     row.dataset.index = i;
     box.appendChild(row);
-    QTY[it.name] = 0;
   });
 }
 
+function syncPicks(){
+  for(const row of document.querySelectorAll('.pick')){
+    const n = lotsOf(+row.dataset.index).length;
+    row.querySelector('input[type=checkbox]').checked = n > 0;
+    row.classList.toggle('on', n > 0);
+    row.querySelector('.lots').textContent = n > 1 ? n + ' lots' : '';
+  }
+}
+
+function renderLots(){
+  const box = document.getElementById('lots');
+  box.textContent = '';
+  document.getElementById('lots-empty').hidden = LOTS.length > 0;
+  LOTS.forEach((lot, n) => {
+    const it = RULES.items[lot.i];
+    const row = el('div','lot');
+    const nm = el('div','nm');
+    nm.appendChild(document.createTextNode(it.name));
+    nm.appendChild(el('small', null, fmt(itemCost(it) * lot.qty) + ' AP'
+      + (lot.qty > 1 ? ' \u00b7 ' + itemCost(it) + ' each' : '')));
+    const qty = document.createElement('input');
+    qty.type = 'number'; qty.min = '1'; qty.value = lot.qty;
+    qty.setAttribute('aria-label', 'How many ' + it.name + ' in this stack');
+    qty.addEventListener('input', () => { lot.qty = Math.max(1, Number(qty.value) || 1); refreshPost(); });
+    const del = el('button','x','\u00d7');
+    del.type = 'button';
+    del.setAttribute('aria-label', 'Remove this ' + it.name);
+    del.addEventListener('click', () => { LOTS.splice(n, 1); refreshPost(); });
+    row.append(nm, qty, del);
+    box.appendChild(row);
+  });
+}
+
+function refreshPost(){
+  syncPicks();
+  renderLots();
+  writePost();
+  writeRows();
+}
+
 function writePost(){
-  const picked = RULES.items.filter(it => QTY[it.name] > 0);
   const ta = document.getElementById('post-text');
-  if(!picked.length){
+  if(!LOTS.length){
     ta.value = '';
     ta.placeholder = 'Tick an item above and the post writes itself.';
     return;
   }
 
-  const fixed = picked.filter(it => it.method === 'fixed');
-  const bids  = picked.filter(it => it.method !== 'fixed');
+  const lines = LOTS.map(lot => ({lot, it: RULES.items[lot.i]}));
+  const fixed = lines.filter(l => l.it.method === 'fixed');
+  const bids  = lines.filter(l => l.it.method !== 'fixed');
   const step  = RULES.auction_rules.default_bid_step;
   const L = [];
   L.push('**JOLLIBEE LOOT \u2014 ' + new Date().toLocaleDateString('en-GB', {day:'numeric', month:'long', year:'numeric'}) + '**');
   L.push('Guild Dungeon run is done, storage is open. Check your AP on the site before you claim.');
 
+  // Each stack is listed on its own, so two stacks of the same thing can go to
+  // two different people instead of one person taking the lot.
+  const line = ({lot, it}) => {
+    const each = itemCost(it);
+    const total = each * lot.qty;
+    const many = lot.qty > 1;
+    if(it.method === 'fixed')
+      return '\u2022 ' + it.name + ' \u00d7' + lot.qty + ' \u2014 **' + fmt(total) + ' AP**'
+        + (many ? ' (' + each + (it.unit ? ' ' + it.unit : ' each') + ')' : '')
+        + (it.channel ? '  \u2192 #' + it.channel : '');
+    return '\u2022 ' + it.name + ' \u00d7' + lot.qty + ' \u2014 min **' + fmt(total) + ' AP**'
+      + (many ? ' (' + each + (it.unit ? ' ' + it.unit : ' each') + ')' : '')
+      + ', bids rise by ' + (it.bid_step || step)
+      + (it.channel ? '  \u2192 #' + it.channel : '');
+  };
+
   if(fixed.length){
     L.push('', '__Fixed price \u2014 first to claim with enough AP__');
-    for(const it of fixed)
-      L.push('\u2022 ' + it.name + ' \u00d7' + QTY[it.name] + ' \u2014 **' + it.price + ' AP**'
-        + (it.unit ? ' ' + it.unit : '')
-        // qty and price are separate numbers; nobody should have to multiply in their head.
-        + (QTY[it.name] > 1 ? ', **' + fmt(it.price * QTY[it.name]) + ' AP** for all ' + QTY[it.name] : '')
-        + (it.channel ? '  \u2192 #' + it.channel : ''));
+    for(const l of fixed) L.push(line(l));
     L.push('Unclaimed after ' + RULES.fixed_price_rules.unclaimed_after_hours + ' h goes to the '
       + RULES.fixed_price_rules.unclaimed_goes_to + '.');
   }
 
   if(bids.length){
     L.push('', '__Auction \u2014 closes in ' + RULES.auction_rules.duration_hours + ' h__');
-    for(const it of bids)
-      L.push('\u2022 ' + it.name + ' \u00d7' + QTY[it.name]
-        + ' \u2014 min **' + fmt(itemCost(it) * QTY[it.name]) + ' AP**'
-        + (QTY[it.name] > 1 ? ' for the lot (' + itemCost(it) + (it.unit ? ' ' + it.unit : ' each') + ')' : '')
-        + ', bids rise by ' + (it.bid_step || step)
-        + (it.channel ? '  \u2192 #' + it.channel : ''));
-    L.push('Highest bid wins and pays their own bid; ' + RULES.auction_rules.tiebreak
-      + '. No bids and it relists at the minimum as fixed price.');
+    for(const l of bids) L.push(line(l));
+    L.push('Each stack is bid on separately. Highest bid wins and pays their own bid; '
+      + RULES.auction_rules.tiebreak + '. No bids and it relists at the minimum as fixed price.');
   }
 
   L.push('', 'AP cannot be transferred. Balances: ' + location.origin + location.pathname);
   ta.value = L.join('\n');
-  writeRows(picked);
 }
 
 const LISTING_HEAD = ['posted','item','qty','method','price_or_min','closes','status','winner','final_ap'];
@@ -756,9 +817,9 @@ const stamp = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0'
   + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0')
   + ':' + String(d.getMinutes()).padStart(2,'0');
 
-function writeRows(picked){
+function writeRows(){
   const ta = document.getElementById('rows-text');
-  if(!picked || !picked.length){
+  if(!LOTS.length){
     ta.value = '';
     ta.placeholder = LISTING_HEAD.join('\t');
     return;
@@ -767,28 +828,22 @@ function writeRows(picked){
   const posted = stamp(now);
   const plus = h => stamp(new Date(now.getTime() + h * 3600 * 1000));
 
-  ta.value = picked.map(it => [
-    posted,
-    it.channel || it.name,
-    QTY[it.name],
-    it.method,
-    itemCost(it),
-    // Fixed items sit until someone claims them; auctions close on the clock.
-    it.method === 'fixed' ? plus(RULES.fixed_price_rules.unclaimed_after_hours)
-                          : plus(RULES.auction_rules.duration_hours),
-    'open',
-    '',
-    '',
-  ].join('\t')).join('\n');
-}
-
-function setPick(i, qty){
-  const row = document.querySelector('.pick[data-index="' + i + '"]');
-  if(!row) return;
-  const cb = row.querySelector('input[type=checkbox]');
-  row.querySelector('input[type=number]').value = qty || 1;
-  cb.checked = true;
-  cb.dispatchEvent(new Event('change'));
+  ta.value = LOTS.map(lot => {
+    const it = RULES.items[lot.i];
+    return [
+      posted,
+      it.channel || it.name,
+      lot.qty,
+      it.method,
+      itemCost(it),
+      // Fixed items sit until someone claims them; auctions close on the clock.
+      it.method === 'fixed' ? plus(RULES.fixed_price_rules.unclaimed_after_hours)
+                            : plus(RULES.auction_rules.duration_hours),
+      'open',
+      '',
+      '',
+    ].join('\t');
+  }).join('\n');
 }
 
 /* ---------------- screenshot pre-fill ---------------- */
@@ -931,21 +986,23 @@ async function readScreenshot(file){
       }catch(e){ bitmap = null; }
     }
 
-    const hits = new Map();
+    const kinds = new Set();
     for(const r of matched){
       let qty = readQty(r.text);
       if(bitmap && r.bbox){
         const badge = await readBadge(worker, bitmap, r.bbox, pitch);
         if(badge){ qty = badge; read++; }
       }
-      hits.set(r.m.index, (hits.get(r.m.index) || 0) + qty);
+      addLot(r.m.index, qty);
+      kinds.add(r.m.index);
     }
+    refreshPost();
 
-    for(const [i, qty] of hits) setPick(i, qty);
-    show(hits.size + (hits.size === 1 ? ' item' : ' items') + ' from ' + matched.length + ' rows, '
-      + (read ? read + ' stack size' + (read === 1 ? '' : 's') + ' read off the icons'
-              : 'stack sizes not readable')
-      + ' \u2014 check the quantities before you copy.');
+    show(matched.length + (matched.length === 1 ? ' stack' : ' stacks') + ' of ' + kinds.size
+      + (kinds.size === 1 ? ' item, ' : ' items, ')
+      + (read ? read + ' quantity' + (read === 1 ? '' : 'ies') + ' read off the icons'
+              : 'quantities not readable')
+      + ' \u2014 check them before you copy.');
   }catch(err){
     show('Could not read that image. Tick the items by hand.');
   }finally{
@@ -1003,10 +1060,8 @@ function wireBuilder(){
   });
 
   document.getElementById('reset-post').onclick = () => {
-    for(const row of document.querySelectorAll('.pick')){
-      const cb = row.querySelector('input[type=checkbox]');
-      if(cb.checked){ cb.checked = false; cb.dispatchEvent(new Event('change')); }
-    }
+    LOTS = [];
+    refreshPost();
     document.getElementById('ocr-note').hidden = true;
     document.getElementById('copy-note').textContent = '';
     document.getElementById('rows-note').textContent = '';

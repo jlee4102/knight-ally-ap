@@ -164,6 +164,8 @@ const qtyOf = name => tally.get(RULES.items.findIndex(i => i.name === name));
 check('repeated rows of one item add up instead of collapsing to one',
   qtyOf('Higher Arcane Scroll'), 3);
 check('a different item is counted separately', qtyOf('Essence of the Sky'), 1);
+check('each storage row stays its own stack rather than being merged',
+  STORAGE.filter(l => matchItem(l)).length, 4);
 check('an expiry or timestamp on the line is not mistaken for a quantity',
   readQty('Higher Arcane Scroll of Discipline  Superior  2026 14:09 (UTC-4)  14 d left'), 1);
 
