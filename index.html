@@ -1478,7 +1478,9 @@ function capWarning(n){
 }
 
 (async function(){
-  RULES = await (await fetch('ap_rules.json')).json();
+  // Revalidate rather than trusting the browser cache: after a price change the
+  // page is useless if it is still quoting last week's rules.
+  RULES = await (await fetch('ap_rules.json', {cache: 'no-cache'})).json();
   document.getElementById('t-full').textContent  = fmt(baselineWeek());
   document.getElementById('t-sched').textContent = fmt(scheduledWeek());
   document.getElementById('t-cap').textContent   = fmt(RULES.balance_cap);
