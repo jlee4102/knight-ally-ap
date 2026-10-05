@@ -43,30 +43,26 @@ check('Cave 3 pays 20, 17 then 12',
   RULES.events.caves_3.low_turnout_bonus.map(t => t.ap), [20, 17, 12]);
 
 console.log('\nSplitting a pile into listings');
-// max_qty is the most that may go in one listing. addLot splits a reading into
-// whole lots plus a real remainder; this mirrors that loop.
+// max_qty is the lot size aimed for, not a hard slice: a pile is cut into as many
+// lots as that needs, then shared out evenly. Mirrors addLot.
 const split = (name, n) => {
   const cap = RULES.items.find(i => i.name === name).max_qty;
-  const full = Math.floor(n / cap);
-  return {lots: Array(full).fill(cap), leftover: n - full * cap};
+  if (!cap || n <= cap) return [n];
+  const lots = Math.ceil(n / cap);
+  const base = Math.floor(n / lots), odd = n % lots;
+  return Array.from({length: lots}, (_, k) => base + (k < odd ? 1 : 0));
 };
-check('a pile of orbs becomes whole lots',
-  split('Glider material (Orbs of Winds)', 100).lots, [25, 25, 25, 25]);
-check('a pile that divides evenly leaves nothing over',
-  split('Glider material (Orbs of Winds)', 100).leftover, 0);
-// A part lot is not worth running a claim for; the odd ones go to the leader.
-check('a part lot is not listed', split('Glider material (Orbs of Winds)', 30).lots, [25]);
-check('what is left over is reported, not posted',
-  split('Glider material (Orbs of Winds)', 30).leftover, 5);
-check('a pile never grows in the splitting', (() => {
-  const r = split('Crystal of Liberation (Potential)', 45);
-  return r.lots.reduce((a, b) => a + b, 0) + r.leftover;
-})(), 45);
-check('too few for even one lot means nothing is listed',
-  split('Glider material (Orbs of Winds)', 10).lots, []);
-check('loot that never stacks becomes one listing each', split('Skill book', 3).lots, [1, 1, 1]);
-check('loot that never stacks can never leave a remainder',
-  split('Skill book', 3).leftover, 0);
+const orbs = n => split('Glider material (Orbs of Winds)', n);
+check('a pile that divides evenly gives full lots', orbs(100), [25, 25, 25, 25]);
+check('an awkward pile is shared out rather than cut short', orbs(37), [19, 18]);
+check('no lot is ever bigger than the target', orbs(37).every(q => q <= 25), true);
+check('lots differ by at most one', Math.max(...orbs(37)) - Math.min(...orbs(37)) <= 1, true);
+check('a pile under one lot stays whole', orbs(10), [10]);
+check('crystals share out too', split('Crystal of Liberation (Potential)', 45), [15, 15, 15]);
+check('loot that never stacks becomes one listing each', split('Skill book', 3), [1, 1, 1]);
+// The whole point: a pile comes out the far side exactly the size it went in.
+check('nothing is lost or invented in the splitting',
+  [1, 7, 10, 23, 37, 45, 100, 137].filter(n => orbs(n).reduce((a, b) => a + b, 0) !== n), []);
 check('every cap is a whole number of at least one',
   RULES.items.filter(i => 'max_qty' in i && !(Number.isInteger(i.max_qty) && i.max_qty >= 1))
     .map(i => i.name), []);

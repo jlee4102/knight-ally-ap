@@ -231,7 +231,6 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .lot .x{background:none; border:1px solid var(--line); color:var(--faint); font-family:var(--mono);
     font-size:15px; line-height:1; width:30px; height:30px; cursor:pointer; flex:none}
   .lot .x:hover{color:var(--crimson); border-color:var(--crimson)}
-  .lot.left{background:none; border-style:dashed; color:var(--dim)}
   .out{border-top:1px solid var(--line); padding:18px}
   .out textarea{width:100%; min-height:210px; background:var(--ground); color:var(--text); border:1px solid var(--line);
     font-family:var(--mono); font-size:12.5px; line-height:1.55; padding:13px; resize:vertical}
@@ -690,28 +689,21 @@ function checkDrift(){
 // One entry per stack in storage, not one per kind of item: five stacks of the same
 // scroll are five listings, each with its own quantity and its own row in the sheet.
 let LOTS = [];
-const LEFTOVER = new Map();   // item index -> count too small to make a lot
 const lotsOf = i => LOTS.filter(l => l.i === i);
 
 function itemCost(it){ return it.price ?? it.min_bid ?? it.min_per_unit; }
 
-// max_qty is the most that may go in one listing. A skill book never stacks, so
-// its cap is 1 and two of them are two listings. Orbs and crystals arrive in
-// hundreds, so capping them splits one pile into lots several members can each
-// afford, instead of one listing only the richest can touch.
+// max_qty is the lot size we aim for, not a hard slice. A pile is cut into as many
+// lots as that needs and then shared out evenly, so nothing is ever left over: 37
+// orbs is 19 and 18, not 25 and 12 thrown away. Lot sizes vary with the drop; the
+// per-unit price does not, and that is the number members actually plan against.
 function addLot(i, qty){
   const cap = RULES.items[i].max_qty || 0;
   const n = Math.max(1, Math.round(qty) || 1);
-  if(cap){
-    // Whole lots only. A part lot is not worth running a claim for, so the odd
-    // ones left over go to the guild leader like anything else unclaimed.
-    const full = Math.floor(n / cap);
-    for(let k = 0; k < full; k++) LOTS.push({i, qty: cap});
-    const left = n - full * cap;
-    if(left) LEFTOVER.set(i, (LEFTOVER.get(i) || 0) + left);
-    return;
-  }
-  LOTS.push({i, qty: n});
+  if(!cap || n <= cap){ LOTS.push({i, qty: n}); return; }
+  const lots = Math.ceil(n / cap);
+  const base = Math.floor(n / lots), odd = n % lots;
+  for(let k = 0; k < lots; k++) LOTS.push({i, qty: base + (k < odd ? 1 : 0)});
 }
 
 function buildPicks(){
@@ -730,7 +722,7 @@ function buildPicks(){
     const count = el('em','lots','');
     cb.addEventListener('change', () => {
       if(cb.checked) addLot(i, RULES.items[i].max_qty || 1);
-      else { LOTS = LOTS.filter(l => l.i !== i); LEFTOVER.delete(i); }
+      else LOTS = LOTS.filter(l => l.i !== i);
       refreshPost();
     });
     row.append(cb, nm, count);
@@ -748,15 +740,10 @@ function syncPicks(){
   }
 }
 
-function leftoverLines(){
-  return [...LEFTOVER.entries()].filter(([, n]) => n > 0)
-    .map(([i, n]) => n + ' × ' + RULES.items[i].name);
-}
-
 function renderLots(){
   const box = document.getElementById('lots');
   box.textContent = '';
-  document.getElementById('lots-empty').hidden = LOTS.length > 0 || LEFTOVER.size > 0;
+  document.getElementById('lots-empty').hidden = LOTS.length > 0;
   LOTS.forEach((lot, n) => {
     const it = RULES.items[lot.i];
     const row = el('div','lot');
@@ -780,14 +767,6 @@ function renderLots(){
     row.append(nm, qty, del);
     box.appendChild(row);
   });
-  for(const line of leftoverLines()){
-    const row = el('div','lot left');
-    const nm = el('div','nm');
-    nm.appendChild(document.createTextNode(line));
-    nm.appendChild(el('small', null, 'too few for a lot — goes to the guild leader'));
-    row.appendChild(nm);
-    box.appendChild(row);
-  }
 }
 
 function refreshPost(){
@@ -843,8 +822,6 @@ function writePost(){
       + RULES.auction_rules.tiebreak + '. No bids and it relists at the minimum as fixed price.');
   }
 
-  const left = leftoverLines();
-  if(left.length) L.push('', 'To the guild leader, too few for a lot: ' + left.join(', ') + '.');
   L.push('', 'AP cannot be transferred. Balances: ' + location.origin + location.pathname);
   ta.value = L.join('\n');
 }
@@ -1107,7 +1084,6 @@ function wireBuilder(){
 
   document.getElementById('reset-post').onclick = () => {
     LOTS = [];
-    LEFTOVER.clear();
     refreshPost();
     document.getElementById('ocr-note').hidden = true;
     document.getElementById('copy-note').textContent = '';
