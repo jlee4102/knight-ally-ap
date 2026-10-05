@@ -91,7 +91,7 @@
     { "channel": "potential", "name": "Crystal of Liberation (Potential)", "method": "fixed", "price": 100, "unit": "per stack of 20" },
     { "channel": "t3-gear-post", "name": "Epic T3 gear", "method": "auction", "min_bid": 100, "bid_step": 25 },
     { "channel": null, "name": "Higher Arcane Scroll", "method": "fixed", "price": 3, "unit": "per scroll" },
-    { "channel": null, "name": "Superior Arcane Scroll", "method": "fixed", "price": 100, "unit": "per scroll" },
+    { "channel": "legend-scrolls", "name": "Superior Arcane Scroll", "method": "auction", "min_bid": 100, "bid_step": 25, "unit": "per scroll" },
     { "channel": null, "name": "Master's Aircraft Toolbox", "method": "fixed", "price": 50, "unit": "each" },
     { "channel": null, "name": "Essence of the Sky", "method": "fixed", "price": 50, "unit": "each" }
   ],
