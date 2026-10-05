@@ -8,7 +8,7 @@
       "per_week": 2,
       "schedule": "Wed and Sat 9 pm (Crusade and Dominion alternate)",
       "type": "pvp",
-      "win_bonus": { "ap": 20, "status": "proposed, not yet approved", "note": "union win counts; everyone on the check-in gets it" }
+      "win_bonus": { "ap": 20, "status": "live in Chielo", "note": "union win counts; everyone on the check-in gets it" }
     },
     "gvg": {
       "label": "Guild Battlefield (GvG)",
@@ -16,27 +16,30 @@
       "per_week": 2,
       "schedule": "Tue and Fri 9 pm",
       "type": "pvp",
-      "win_bonus": { "ap": 20, "status": "proposed, not yet approved" }
+      "win_bonus": { "ap": 20, "status": "live in Chielo" }
     },
     "guild_dungeon": {
       "label": "Guild Dungeon run (Kodshee, Tiarak, Antimeness)",
       "base_ap": 50,
       "per_week": 1,
       "schedule": "weekly; resets Monday 4:00",
-      "type": "pve"
+      "type": "pve",
+      "win_bonus": { "ap": 20, "status": "live in Chielo" }
     },
     "epic_dungeon": {
       "label": "Epic Dungeon boss (ED 90 or ED 110)",
       "base_ap": 35,
       "per_week": 1,
-      "type": "pve"
+      "type": "pve",
+      "win_bonus": { "ap": 20, "status": "live in Chielo" }
     },
     "world_boss": {
       "label": "World boss / World Dungeon (Hisharat, Chantarat)",
       "base_ap": 30,
       "per_week": 2,
       "schedule": "Thu and Sun",
-      "type": "pve"
+      "type": "pve",
+      "win_bonus": { "ap": 20, "status": "live in Chielo" }
     },
     "caves_boss": {
       "label": "Caves boss (Ice Cavern, server only)",
@@ -52,11 +55,11 @@
     },
     "region_boss": {
       "label": "Region boss (union rotates which bosses each guild gets)",
-      "base_ap": 10,
+      "base_ap": 12,
       "per_week": 14,
       "type": "pve",
       "low_turnout_bonus": {
-        "status": "proposed, not yet approved",
+        "status": "live in Chielo",
         "tiers": [
           { "min_members": 1, "max_members": 3, "ap": 16 },
           { "min_members": 4, "max_members": 6, "ap": 13 },
@@ -66,7 +69,7 @@
     },
     "battlefield_elite": {
       "label": "Battlefield elite (our assigned spawn)",
-      "base_ap": 5,
+      "base_ap": 12,
       "per_week": 7,
       "type": "pve"
     }
@@ -84,7 +87,7 @@
     { "channel": "blessing", "name": "Blessing stone", "method": "fixed", "price": 8, "unit": "per stone" },
     { "channel": "remnants", "name": "Forgotten Remnant", "method": "fixed", "price": 8, "unit": "per remnant" },
     { "channel": "skillbooks", "name": "Skill book", "method": "auction", "min_bid": 150, "bid_step": 25, "unit": "per book", "max_qty": 1 },
-    { "channel": "gear-mats-apply", "name": "Gear material", "method": "fixed", "price": 5, "unit": "per unit" },
+    { "channel": "gear-mats-apply", "name": "Gear material", "method": "fixed", "price": 5, "unit": "per unit", "aliases": ["Gear Crafting Material Selection Chest"] },
     { "channel": "potential", "name": "Crystal of Liberation (Potential)", "method": "fixed", "price": 100, "unit": "per stack of 20" },
     { "channel": "t3-gear-post", "name": "Epic T3 gear", "method": "auction", "min_bid": 100, "bid_step": 25 },
     { "channel": null, "name": "Higher Arcane Scroll", "method": "fixed", "price": 3, "unit": "per scroll" },

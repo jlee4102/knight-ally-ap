@@ -21,10 +21,11 @@ const check = (name, got, want) => {
 };
 
 console.log('AP totals');
+// These match what Chielo actually credits, read off its own Event Logs.
 const full = Object.values(RULES.events).reduce((s, e) => s + e.base_ap * e.per_week, 0);
 const sched = ['crusade_dominion', 'gvg', 'guild_dungeon', 'epic_dungeon', 'world_boss']
   .reduce((s, k) => s + RULES.events[k].base_ap * RULES.events[k].per_week, 0);
-check('a full week of activity is 1,086 AP', full, 1086);
+check('a full week of activity is 1,163 AP', full, 1163);
 check('scheduled events alone are 575 AP', sched, 575);
 check('no price exceeds one week of full activity',
   RULES.items.filter(i => (i.price ?? i.min_bid ?? i.min_per_unit) > full).map(i => i.name), []);
@@ -54,8 +55,8 @@ check('a bound suffix is ignored', hit('Essence of the Sky (Bound)   Superior   
   'Essence of the Sky');
 check('a longer in-game name still finds the item it belongs to',
   hit("Forgotten Transcendent's Remnant (Bound)   Superior   14 d left"), 'Forgotten Remnant');
-check('a genuinely ambiguous row is still refused',
-  hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1 - Main Round'), null);
+check('an in-game name reaches the item it is priced under, via its alias',
+  hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1 - Main Round'), 'Gear material');
 
 console.log('\nBalances');
 // One eval: a const declared in its own eval call does not leak to the next one.

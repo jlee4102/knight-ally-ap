@@ -45,7 +45,10 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     flex:none; display:flex; align-items:center;
   }
   nav.bar a:hover{color:var(--gold); border-bottom-color:var(--gold-soft)}
-  nav.bar a.on{color:var(--text); border-bottom-color:var(--gold)}
+  nav.bar a.on{color:var(--gold); border-bottom-color:var(--gold)}
+  /* First section in a panel has the header above it already, so no double rule. */
+  [data-panel]:not([hidden]) + [data-panel]{border-top:1px solid var(--line)}
+  section[data-panel]:first-of-type{border-top:0}
   nav.bar a.officer{color:var(--faint); margin-left:auto}
 
   /* ---- header ---- */
@@ -282,12 +285,12 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 <body>
 
 <div class="wrap">
-  <nav class="bar">
-    <a href="#vault">The vault</a>
-    <a href="#standings">Standings</a>
-    <a href="#week">This week</a>
-    <a href="#events">Check-ins</a>
-    <a href="#post" class="officer">Officers</a>
+  <nav class="bar" role="tablist">
+    <a href="#vault" data-panel="vault">The vault</a>
+    <a href="#standings" data-panel="standings">Standings</a>
+    <a href="#week" data-panel="week">Earning</a>
+    <a href="#events" data-panel="events">Check-ins</a>
+    <a href="#post" data-panel="post" class="officer">Officers</a>
   </nav>
 
   <header class="crest">
@@ -308,7 +311,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <div class="me-body" id="me-body" hidden></div>
   </div>
 
-  <section id="vault">
+  <section id="vault" data-panel="vault">
     <h2>The vault</h2>
     <p class="sub" id="vault-sub">Loading what is posted…</p>
     <div class="scroll">
@@ -321,7 +324,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </section>
 
-  <section id="standings">
+  <section id="standings" data-panel="standings">
     <h2>Standings</h2>
     <p class="sub" id="standings-sub">Loading the roster…</p>
     <input type="search" id="search" placeholder="Find a member…" aria-label="Find a member">
@@ -339,7 +342,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <div class="tile"><span class="k">Balance cap</span><span class="v" id="t-cap">—</span><span class="n">anything above is not credited</span></div>
   </div>
 
-  <section id="events">
+  <section id="events" data-panel="events">
     <h2>Latest check-ins</h2>
     <p class="sub">Straight from Chielo, newest first. Turnout is the number who checked in — that is what the caves bonus tiers are scored on.</p>
     <div class="scroll">
@@ -350,13 +353,13 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </section>
 
-  <section id="week">
+  <section id="week" data-panel="week">
     <h2>This week</h2>
     <p class="sub">Scheduled events on their own. Caves, region bosses and battlefield elites run whenever your guild calls them.</p>
     <div class="cal" id="cal"></div>
   </section>
 
-  <section id="earn">
+  <section id="earn" data-panel="week">
     <h2>What a week earns</h2>
     <p class="sub">Set what you actually attend. Every rate below comes from the guild rules file, so a rate change here is a one-line edit there.</p>
 
@@ -383,7 +386,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </section>
 
-  <section id="loot">
+  <section id="loot" data-panel="vault">
     <h2>What AP buys</h2>
     <p class="sub">Guild storage holds 100 slots and items expire after 30 days, so the vault empties every week. Nothing may cost more than one week of full activity — the page checks that against the rates above.</p>
     <div class="scroll">
@@ -396,7 +399,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </section>
 
-  <details class="fold" id="how">
+  <details class="fold" id="how" data-panel="week">
     <summary>The weekly cycle, and the rules</summary>
     <div class="grid2" style="margin-top:20px">
       <ol class="cycle" id="cycle"></ol>
@@ -404,7 +407,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </details>
 
-  <details class="fold" id="setup">
+  <details class="fold" id="setup" data-panel="post">
     <summary>Where the numbers come from</summary>
     <div class="note">
       <p style="margin:0 0 10px"><strong>Earning is automatic.</strong> Chielo writes every closed check-in to the guild AP sheet — one row per event with its turnout, plus a running AP total per member. This page reads those tabs; nobody types a point in.</p>
@@ -413,7 +416,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     </div>
   </details>
 
-  <details class="fold" id="post">
+  <details class="fold" id="post" data-panel="post">
     <summary>Officers &middot; build the loot post</summary>
     <p class="sub">For officers, after the Guild Dungeon run. Tick what came out of storage, set quantities, copy the post into Discord. Prices and auction minimums come from the rules, so they are never typed wrong.</p>
 
@@ -670,7 +673,7 @@ function buildStatic(){
 
 // Self-check: the rules file must still produce the two headline figures the system was designed around.
 function checkDrift(){
-  const expect = [[baselineWeek(), 1086, 'full week'], [scheduledWeek(), 575, 'scheduled only']];
+  const expect = [[baselineWeek(), 1163, 'full week'], [scheduledWeek(), 575, 'scheduled only']];
   const off = expect.filter(([got, want]) => got !== want);
   if(!off.length) return;
   const w = el('div','warn');
@@ -875,9 +878,15 @@ function matchItem(line){
   // Prefer a name that appears intact and in order. Every storage row carries a
   // rarity column, and "Higher Arcane Scroll of Discipline  Superior" contains every
   // word of "Superior Arcane Scroll" too — but not in that order, and not together.
+  // An item can carry the names the game actually prints for it, which rarely match
+  // the short name the guild prices it under.
+  const namesOf = it => [it.name, ...(it.aliases || [])];
   const whole = RULES.items
-    .map((it, i) => ({i, at: flat.indexOf(norm(it.name))}))
-    .filter(c => c.at >= 0);
+    .map((it, i) => ({i, at: Math.min(...namesOf(it).map(n => {
+      const at = flat.indexOf(norm(n));
+      return at < 0 ? Infinity : at;
+    }))}))
+    .filter(c => c.at < Infinity);
   if(whole.length === 1) return {index: whole[0].i};
   if(whole.length > 1){
     // Several intact names: take the earliest, then the longest.
@@ -887,9 +896,10 @@ function matchItem(line){
   }
   let best = null, bestScore = 0, runnerUp = 0;
   RULES.items.forEach((it, i) => {
-    const key = norm(it.name).split(' ').filter(w => w.length > 2 && !STOP.has(w));
-    if(!key.length) return;
-    const score = key.filter(w => words.has(w)).length / key.length;
+    const score = Math.max(...[it.name, ...(it.aliases || [])].map(n => {
+      const key = norm(n).split(' ').filter(w => w.length > 2 && !STOP.has(w));
+      return key.length ? key.filter(w => words.has(w)).length / key.length : 0;
+    }));
     if(score > bestScore){ runnerUp = bestScore; bestScore = score; best = i; }
     else if(score > runnerUp) runnerUp = score;
   });
@@ -1025,32 +1035,29 @@ async function readScreenshot(file){
 
 function wireNav(){
   const links = [...document.querySelectorAll('nav.bar a')];
-  const open = hash => {
-    const t = hash && document.querySelector(hash);
-    if(t && t.tagName === 'DETAILS') t.open = true;
-    return t;
-  };
-  for(const a of links) a.addEventListener('click', () => open(a.getAttribute('href')));
-  open(location.hash);
+  const panels = [...document.querySelectorAll('[data-panel]')];
 
-  // Sorted by where they sit on the page, not by nav order: "the last section
-  // above the line" is only meaningful in document order, and the two differ.
-  const targets = links.map(a => ({a, el: document.querySelector(a.getAttribute('href'))}))
-                       .filter(t => t.el)
-                       .sort((x, y) => x.el.offsetTop - y.el.offsetTop);
-  let queued = false;
-  const mark = () => {
-    queued = false;
-    let current = targets[0];
-    for(const t of targets) if(t.el.getBoundingClientRect().top <= 70) current = t;
-    for(const t of targets) t.a.classList.toggle('on', t === current);
+  // One panel at a time. Six sections stacked end to end meant scrolling past
+  // everything you were not looking for to reach the thing you were.
+  const show = name => {
+    const pick = links.some(a => a.dataset.panel === name) ? name : links[0].dataset.panel;
+    for(const el of panels) el.hidden = el.dataset.panel !== pick;
+    for(const a of links) a.classList.toggle('on', a.dataset.panel === pick);
+    // A folded section inside the panel you just asked for should be open.
+    const fold = document.querySelector('details.fold[data-panel="' + pick + '"]');
+    if(fold && pick === 'post') fold.open = true;
+    return pick;
   };
-  addEventListener('scroll', () => {
-    if(queued) return;
-    queued = true;
-    requestAnimationFrame(mark);
-  }, {passive: true});
-  mark();
+
+  for(const a of links) a.addEventListener('click', e => {
+    e.preventDefault();
+    const pick = show(a.dataset.panel);
+    history.replaceState(null, '', '#' + pick);
+    scrollTo({top: 0, behavior: 'smooth'});
+  });
+
+  show((location.hash || '').slice(1));
+  addEventListener('hashchange', () => show(location.hash.slice(1)));
 }
 
 function wireBuilder(){
