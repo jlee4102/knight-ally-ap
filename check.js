@@ -110,7 +110,7 @@ check('the balance cap still applies', bal('NC | Capped').balance, RULES.balance
 check('earned is never silently capped', bal('NC | Capped').earned, 9000);
 check('two accounts sharing a display name both survive',
   readMembers(RECORDS, LEDGER).filter(m => m.name === 'NC | Twin').length, 2);
-check('the bot's own total wins over adding the columns up',
+check('the running total the bot keeps wins over adding the columns up',
   bal('NC | Mismatch').earned, 202);
 check('a column the bot added is still shown in the breakdown',
   bal('NC | Mismatch').att.battlefield_elite, 20);
