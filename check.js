@@ -89,6 +89,27 @@ check('a positive ledger row is a credit, not a spend', bal('NC | Chielo').adjus
 check('the balance cap still applies', bal('NC | Capped').balance, RULES.balance_cap);
 check('earned is never silently capped', bal('NC | Capped').earned, 9000);
 
+console.log('\nBidding Item tab');
+// Same eval as its helpers: readBidding closes over toNum, rowObjects and itemCost.
+eval(grab('function itemCost', '\nfunction buildPicks')
+   + grab('const headerIndex', '\nlet EVENTS'));
+const BID_HEAD = ['Item', 'AP Price', 'Status', 'Winner', 'Winning Bid'];
+const bid = row => readBidding([BID_HEAD, row])[0];
+check('an available row is open', bid(['Legacy', '69', 'Available', '', '']).open, true);
+check('an unavailable row is not open',
+  bid(['Test', '50', 'Unavailable', 'NC | Chielo', '100']).open, false);
+// Names on this tab are the officers' own, so an unknown one is normal.
+check('a name the rules do not know is kept and not flagged',
+  bid(['Sex Doll', '30', 'Available', '', '']).flags.length, 0);
+check('a winning bid under the asking price is flagged',
+  bid(['Legacy', '69', 'Unavailable', 'NC | Chielo', '50']).flags.length, 1);
+check('a winner with no bid recorded is flagged',
+  bid(['Legacy', '69', 'Unavailable', 'NC | Chielo', '']).flags.length, 1);
+check('a known item priced under its rules minimum is flagged',
+  bid(['Skill book', '50', 'Available', '', '']).flags.length, 1);
+check('a known item priced at its minimum is fine',
+  bid(['Skill book', '150', 'Available', '', '']).flags.length, 0);
+
 console.log('\nAP_LISTINGS rows');
 // `const` declared inside eval does not escape it, so hand these back explicitly.
 const { LISTING_HEAD, stamp } = new Function(

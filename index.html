@@ -470,6 +470,7 @@ const TAB_RECORDS = 'AP Records';
 const TAB_EVENTS  = 'Event Logs';
 const TAB_LEDGER  = 'AP_LEDGER';
 const TAB_LISTINGS = 'AP_LISTINGS';
+const TAB_BIDDING  = 'Bidding Item';
 
 // Columns on AP Records, mapped to the events in the rules file.
 const EARN_COLUMNS = [
@@ -1335,6 +1336,35 @@ function readListings(rows){
   });
 }
 
+// The officers' own bidding list. Names here are free text rather than keys from
+// the rules, so an unrecognised one is normal and not flagged; a name that does
+// match is still checked against its minimum.
+function readBidding(rows){
+  return rowObjects(rows).filter(r => r.Item).map(r => {
+    const known = RULES.items.find(i =>
+      [i.name, ...(i.aliases || [])].some(n => n.toLowerCase() === r.Item.toLowerCase()));
+    const price = toNum(r['AP Price']);
+    const paid = toNum(r['Winning Bid']);
+    const open = /available/i.test(r.Status) && !/unavailable/i.test(r.Status);
+
+    const flags = [];
+    if(known && price && price < itemCost(known))
+      flags.push('below the ' + itemCost(known) + ' AP minimum in the rules');
+    if(paid && price && paid < price) flags.push('winning bid is under the asking price');
+    if(r.Winner && !paid) flags.push('winner recorded with no winning bid');
+
+    return {
+      name: known ? known.name : r.Item,
+      unit: '', qty: 1, method: 'auction',
+      price, paid, flags,
+      winner: r.Winner || '',
+      status: open ? 'open' : (r.Status || 'closed').toLowerCase(),
+      open, due: false, closes: null, posted: null,
+      source: 'bidding',
+    };
+  });
+}
+
 // Every row Chielo closes, newest first. Participant Count is the turnout the
 // alliance spreadsheet never recorded, which is what the caves bonus tiers need.
 function readEvents(rows){
@@ -1357,10 +1387,15 @@ let EVENTS = [], LISTINGS = [];
 
 async function loadRoster(){
   const sub = document.getElementById('standings-sub');
-  const grab = async name => parseCSV(await (await fetch(tabUrl(name))).text());
+  // Each tab stands on its own: a renamed or missing one should cost you that
+  // section, not the whole page.
+  const grab = async name => {
+    try{ return parseCSV(await (await fetch(tabUrl(name))).text()); }
+    catch(e){ return []; }
+  };
   try{
-    const [records, ledger, events, listings] = await Promise.all(
-      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS, TAB_LISTINGS].map(grab));
+    const [records, ledger, events, listings, bidding] = await Promise.all(
+      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS, TAB_LISTINGS, TAB_BIDDING].map(grab));
 
     ROSTER = readMembers(records, ledger);
     ROSTER.sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
@@ -1370,7 +1405,7 @@ async function loadRoster(){
     sub.textContent = `${ROSTER.length} members, ${EVENTS.length} events logged by Chielo`
       + (spent ? `, ${spent} ledger entries applied.` : '. No deductions recorded yet.');
 
-    LISTINGS = readListings(listings);
+    LISTINGS = [...readListings(listings), ...readBidding(bidding)];
     buildEvents();
     buildVault();
     fillPicker();
@@ -1441,7 +1476,7 @@ function buildVault(){
     const td5 = el('td');
     if(l.due) td5.appendChild(el('span','chip prop', 'needs settling'));
     else if(l.open && l.closes) td5.appendChild(el('span', null, 'closes in ' + since(l.closes - now)));
-    else if(l.open) td5.appendChild(el('span', null, 'open'));
+    else if(l.open) td5.appendChild(el('span', null, 'open for bids'));
     else td5.appendChild(el('span', null, l.winner ? l.status + ' \u2014 ' + l.winner : l.status));
     tr.appendChild(td5);
 

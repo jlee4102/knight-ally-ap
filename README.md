@@ -29,6 +29,7 @@ Google Sheet `10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0`, three tabs, all rea
 | `Event Logs` | Chielo | One row per closed check-in: time, result, base AP, win bonus, **participant count**, participants |
 | `AP_LEDGER` | officers, by hand | Deductions, voids and corrections |
 | `AP_LISTINGS` | pasted from the loot post builder | What is posted, what it closes at, what it sold for |
+| `Bidding Item` | officers, by hand | A running bid list: `Item`, `AP Price`, `Status`, `Winner`, `Winning Bid` |
 
 `balance = AP Records total + ledger credits − ledger debits`, capped at `balance_cap`.
 
@@ -55,6 +56,12 @@ It checks what comes back rather than trusting it — a wrong number here is som
 An item with `"max_qty": 1` in `ap_rules.json` always drops on its own. The builder splits a reading of two into two separate listings rather than one line saying two, the quantity box will not go above the cap, and a sheet row claiming more is flagged on the vault board.
 
 Currently set on skill books and aura stones. Add it to any other item that drops one at a time.
+
+### Bidding Item
+
+Read onto the vault board alongside `AP_LISTINGS`. `Available` means open; anything else is closed. Item names here are the officers own free text, so a name the rules do not know is shown as written and **not** flagged — only a name that does match is checked against its minimum. A winning bid under the asking price, or a winner with no bid, is flagged either way.
+
+Two tabs describing the same thing will drift. If Chielo maintains this one, retire `AP_LISTINGS` and the loot post builder stops needing its second output box.
 
 ### Known gaps
 
