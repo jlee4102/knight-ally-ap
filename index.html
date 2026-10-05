@@ -364,8 +364,8 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <p class="sub">Set what you actually attend. Every rate below comes from the guild rules file, so a rate change here is a one-line edit there.</p>
 
     <div class="toggles">
-      <label><input type="checkbox" id="opt-win"> <span>Count PvP win bonus <span class="chip prop">proposed</span></span></label>
-      <label><input type="checkbox" id="opt-region"> <span>Count region turnout bonus <span class="chip prop">proposed</span></span></label>
+      <label><input type="checkbox" id="opt-win"> <span>Show what a week looks like if you win them all</span></label>
+
     </div>
 
     <div class="scroll">
@@ -473,13 +473,13 @@ const TAB_BIDDING  = 'Bidding Item';
 
 // Columns on AP Records, mapped to the events in the rules file.
 const EARN_COLUMNS = [
-  {header:'Crusade AP',          event:'crusade_dominion'},
-  {header:'Guild vs Guild AP',   event:'gvg'},
-  {header:'Guild Dungeon AP',    event:'guild_dungeon'},
-  {header:'Epic Dungeon AP',     event:'epic_dungeon'},
-  {header:'World Dungeon AP',    event:'world_boss'},
-  {header:'Cave Boss AP',        event:'caves_boss'},
-  {header:'Region Boss AP',      event:'region_boss'},
+  {header:'Crusade AP',          event:'crusade_dominion', label:'Crusade / Dominion'},
+  {header:'Guild vs Guild AP',   event:'gvg',              label:'Guild Battlefield'},
+  {header:'Guild Dungeon AP',    event:'guild_dungeon',    label:'Guild Dungeon'},
+  {header:'Epic Dungeon AP',     event:'epic_dungeon',     label:'Epic Dungeon'},
+  {header:'World Dungeon AP',    event:'world_boss',       label:'World boss'},
+  {header:'Cave Boss AP',        event:'caves',            label:'Cave bosses'},
+  {header:'Region Boss AP',      event:'region_boss',      label:'Region boss'},
 ];
 
 const tabUrl = name =>
@@ -506,8 +506,7 @@ const el = (t,c,x) => { const e=document.createElement(t); if(c)e.className=c; i
 
 // AP for one check-in of an event, honouring turnout tiers and the proposed toggles.
 function apEach(key, ev){
-  const tiers = key==='caves_boss' ? ev.low_turnout_bonus
-              : (key==='region_boss' && document.getElementById('opt-region')?.checked) ? ev.low_turnout_bonus.tiers
+  const tiers = Array.isArray(ev.low_turnout_bonus) ? ev.low_turnout_bonus
               : null;
   if(tiers){
     const n = TURNOUT[key] ?? 99;
@@ -673,7 +672,7 @@ function buildStatic(){
 
 // Self-check: the rules file must still produce the two headline figures the system was designed around.
 function checkDrift(){
-  const expect = [[baselineWeek(), 1163, 'full week'], [scheduledWeek(), 575, 'scheduled only']];
+  const expect = [[baselineWeek(), 1028, 'full week'], [scheduledWeek(), 575, 'scheduled only']];
   const off = expect.filter(([got, want]) => got !== want);
   if(!off.length) return;
   const w = el('div','warn');
@@ -1166,7 +1165,7 @@ function setMe(name){
     cell('Balance', fmt(bal), ME.spent ? fmt(ME.earned) + ' earned, ' + fmt(ME.spent) + ' spent' : 'nothing spent yet');
     cell('Rank', '#' + rank, 'of ' + ROSTER.length);
     const top = EARN_COLUMNS
-      .map(c => ({label: RULES.events[c.event].label.replace(/ *\(.*\)/, ''), ap: ME.att[c.event] || 0}))
+      .map(c => ({label: c.label, ap: ME.att[c.event] || 0}))
       .sort((a, b) => b.ap - a.ap)[0];
     if(top && top.ap) cell('Most AP from', fmt(top.ap), top.label, true);
     cell('You can afford', can + ' of ' + RULES.items.length, 'items on the loot board', true);
@@ -1487,7 +1486,6 @@ function capWarning(n){
   document.getElementById('btn-full').onclick  = ()=>applyAll(true);
   document.getElementById('btn-clear').onclick = ()=>applyAll(false);
   document.getElementById('opt-win').onchange    = refresh;
-  document.getElementById('opt-region').onchange = refresh;
   document.getElementById('search').oninput = e => renderRoster(e.target.value);
 
   // Open showing a full week, so the page says what the system pays before anyone touches it.

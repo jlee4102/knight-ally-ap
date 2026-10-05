@@ -41,16 +41,43 @@
       "type": "pve",
       "win_bonus": { "ap": 20, "status": "live in Chielo" }
     },
-    "caves_boss": {
-      "label": "Caves boss (Ice Cavern, server only)",
-      "bosses": ["Dardaloca", "Hotura", "Frenzied Tigdal", "Corrupted Gatphillian"],
+    "caves_1": {
+      "label": "Cave 1 boss (Ice Cavern, server only)",
+      "bosses": ["Dardaloca", "Hotura"],
+      "base_ap": 3,
+      "per_week": 10,
+      "_per_week_note": "the split of the 28 cave runs a week across the three levels is a guess; correct it here",
+      "type": "pve",
+      "low_turnout_bonus": [
+        { "min_members": 1, "max_members": 3, "ap": 7 },
+        { "min_members": 4, "max_members": 7, "ap": 5 },
+        { "min_members": 8, "max_members": null, "ap": 3 }
+      ]
+    },
+    "caves_2": {
+      "label": "Cave 2 boss (Ice Cavern, server only)",
+      "bosses": ["Frenzied Tigdal"],
+      "base_ap": 7,
+      "per_week": 9,
+      "_per_week_note": "the split of the 28 cave runs a week across the three levels is a guess; correct it here",
+      "type": "pve",
+      "low_turnout_bonus": [
+        { "min_members": 1, "max_members": 3, "ap": 13 },
+        { "min_members": 4, "max_members": 7, "ap": 11 },
+        { "min_members": 8, "max_members": null, "ap": 7 }
+      ]
+    },
+    "caves_3": {
+      "label": "Cave 3 boss (Ice Cavern, server only)",
+      "bosses": ["Corrupted Gatphillian"],
       "base_ap": 12,
-      "per_week": 28,
+      "per_week": 9,
+      "_per_week_note": "the split of the 28 cave runs a week across the three levels is a guess; correct it here",
       "type": "pve",
       "low_turnout_bonus": [
         { "min_members": 1, "max_members": 3, "ap": 20 },
-        { "min_members": 4, "max_members": 6, "ap": 16 },
-        { "min_members": 7, "max_members": null, "ap": 12 }
+        { "min_members": 4, "max_members": 7, "ap": 17 },
+        { "min_members": 8, "max_members": null, "ap": 12 }
       ]
     },
     "region_boss": {
@@ -58,20 +85,22 @@
       "base_ap": 12,
       "per_week": 14,
       "type": "pve",
-      "low_turnout_bonus": {
-        "status": "live in Chielo",
-        "tiers": [
-          { "min_members": 1, "max_members": 3, "ap": 16 },
-          { "min_members": 4, "max_members": 6, "ap": 13 },
-          { "min_members": 7, "max_members": null, "ap": 10 }
-        ]
-      }
+      "low_turnout_bonus": [
+        { "min_members": 1, "max_members": 3, "ap": 20 },
+        { "min_members": 4, "max_members": 7, "ap": 17 },
+        { "min_members": 8, "max_members": null, "ap": 12 }
+      ]
     },
     "battlefield_elite": {
       "label": "Battlefield elite (our assigned spawn)",
       "base_ap": 12,
       "per_week": 7,
-      "type": "pve"
+      "type": "pve",
+      "low_turnout_bonus": [
+        { "min_members": 1, "max_members": 3, "ap": 20 },
+        { "min_members": 4, "max_members": 7, "ap": 17 },
+        { "min_members": 8, "max_members": null, "ap": 12 }
+      ]
     }
   },
   "items": [

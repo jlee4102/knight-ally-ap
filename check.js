@@ -25,7 +25,22 @@ console.log('AP totals');
 const full = Object.values(RULES.events).reduce((s, e) => s + e.base_ap * e.per_week, 0);
 const sched = ['crusade_dominion', 'gvg', 'guild_dungeon', 'epic_dungeon', 'world_boss']
   .reduce((s, k) => s + RULES.events[k].base_ap * RULES.events[k].per_week, 0);
-check('a full week of activity is 1,163 AP', full, 1163);
+check('a full week of activity at the floor rates is 1,028 AP', full, 1028);
+// Chielo pays caves, region and battlefield on a turnout ladder: fewer people
+// present, more AP each. Every level must have all three bands, in descending
+// order, ending at the base rate.
+const laddered = Object.entries(RULES.events).filter(([, e]) => Array.isArray(e.low_turnout_bonus));
+check('every laddered event has three turnout bands',
+  laddered.filter(([, e]) => e.low_turnout_bonus.length !== 3).map(([k]) => k), []);
+check('a smaller turnout never pays less',
+  laddered.filter(([, e]) => e.low_turnout_bonus.some((t, i, a) => i && t.ap > a[i-1].ap)).map(([k]) => k), []);
+check('the largest turnout pays exactly the base rate',
+  laddered.filter(([, e]) => e.low_turnout_bonus[2].ap !== e.base_ap).map(([k]) => k), []);
+check('the bands run 1-3, 4-7 and 8 or more',
+  laddered.filter(([, e]) => e.low_turnout_bonus.map(t => [t.min_members, t.max_members].join('-')).join(',')
+    !== '1-3,4-7,8-').map(([k]) => k), []);
+check('Cave 3 pays 20, 17 then 12',
+  RULES.events.caves_3.low_turnout_bonus.map(t => t.ap), [20, 17, 12]);
 check('scheduled events alone are 575 AP', sched, 575);
 check('no price exceeds one week of full activity',
   RULES.items.filter(i => (i.price ?? i.min_bid ?? i.min_per_unit) > full).map(i => i.name), []);
