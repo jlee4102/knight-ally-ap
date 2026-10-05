@@ -146,8 +146,13 @@ check('a stack written into the name comes back as a quantity',
   bid({Item: 'Skill book ×3', 'AP Price': '450', Status: 'Available'}).qty, 3);
 check('the name still reaches its rules entry once the count is stripped',
   bid({Item: 'Skill book ×3', 'AP Price': '450', Status: 'Available'}).name, 'Skill book');
+// Derived from the rules, so repricing the catalogue cannot turn this into a test
+// of nothing: at exactly three times the minimum it would pass either way.
+const bookMin = RULES.items.find(i => i.name === 'Skill book').min_bid;
 check('a stack priced below its multiplied minimum is flagged',
-  bid({Item: 'Skill book ×3', 'AP Price': '300', Status: 'Available'}).flags.length, 1);
+  bid({Item: 'Skill book ×3', 'AP Price': String(bookMin * 3 - 25), Status: 'Available'}).flags.length, 1);
+check('a stack priced at exactly its multiplied minimum is fine',
+  bid({Item: 'Skill book ×3', 'AP Price': String(bookMin * 3), Status: 'Available'}).flags.length, 0);
 check('a plain name with no count is a quantity of one',
   bid({Item: 'Skill book', 'AP Price': '150', Status: 'Available'}).qty, 1);
 check('an explicit qty column wins over the count in the name',
