@@ -723,7 +723,10 @@ function writePost(){
     L.push('', '__Fixed price \u2014 first to claim with enough AP__');
     for(const it of fixed)
       L.push('\u2022 ' + it.name + ' \u00d7' + QTY[it.name] + ' \u2014 **' + it.price + ' AP**'
-        + (it.unit ? ' ' + it.unit : '') + (it.channel ? '  \u2192 #' + it.channel : ''));
+        + (it.unit ? ' ' + it.unit : '')
+        // qty and price are separate numbers; nobody should have to multiply in their head.
+        + (QTY[it.name] > 1 ? ', **' + fmt(it.price * QTY[it.name]) + ' AP** for all ' + QTY[it.name] : '')
+        + (it.channel ? '  \u2192 #' + it.channel : ''));
     L.push('Unclaimed after ' + RULES.fixed_price_rules.unclaimed_after_hours + ' h goes to the '
       + RULES.fixed_price_rules.unclaimed_goes_to + '.');
   }
@@ -731,8 +734,10 @@ function writePost(){
   if(bids.length){
     L.push('', '__Auction \u2014 closes in ' + RULES.auction_rules.duration_hours + ' h__');
     for(const it of bids)
-      L.push('\u2022 ' + it.name + ' \u00d7' + QTY[it.name] + ' \u2014 min **' + itemCost(it) + ' AP**, bids rise by '
-        + (it.bid_step || step) + (it.unit ? ' (' + it.unit + ')' : '')
+      L.push('\u2022 ' + it.name + ' \u00d7' + QTY[it.name]
+        + ' \u2014 min **' + fmt(itemCost(it) * QTY[it.name]) + ' AP**'
+        + (QTY[it.name] > 1 ? ' for the lot (' + itemCost(it) + (it.unit ? ' ' + it.unit : ' each') + ')' : '')
+        + ', bids rise by ' + (it.bid_step || step)
         + (it.channel ? '  \u2192 #' + it.channel : ''));
     L.push('Highest bid wins and pays their own bid; ' + RULES.auction_rules.tiebreak
       + '. No bids and it relists at the minimum as fixed price.');
