@@ -480,6 +480,7 @@ const EARN_COLUMNS = [
   {header:'World Dungeon AP',    event:'world_boss',       label:'World boss'},
   {header:'Cave Boss AP',        event:'caves',            label:'Cave bosses'},
   {header:'Region Boss AP',      event:'region_boss',      label:'Region boss'},
+  {header:'Battle Field AP',     event:'battlefield_elite', label:'Battlefield elite'},
 ];
 
 const tabUrl = name =>
@@ -1141,10 +1142,10 @@ function buildWeek(){
   });
 }
 
-function setMe(name){
-  ME = ROSTER.find(m => m.name === name) || null;
-  save(ME_KEY, ME ? ME.name : null);
-  document.getElementById('me').value = ME ? ME.name : '';
+function setMe(key){
+  ME = ROSTER.find(m => m.key === key) || ROSTER.find(m => m.name === key) || null;
+  save(ME_KEY, ME ? ME.key : null);
+  document.getElementById('me').value = ME ? ME.key : '';
   document.getElementById('me-clear').hidden = !ME;
   document.getElementById('me-hint').hidden = !!ME;
 
@@ -1179,11 +1180,11 @@ function fillPicker(){
   const sel = document.getElementById('me');
   sel.textContent = '';
   sel.appendChild(el('option', null, ROSTER.length ? 'Pick your name…' : 'Roster unavailable')).value = '';
-  for(const m of ROSTER) sel.appendChild(el('option', null, m.name)).value = m.name;
+  for(const m of ROSTER) sel.appendChild(el('option', null, m.name)).value = m.key;
   sel.onchange = () => setMe(sel.value);
   document.getElementById('me-clear').onclick = () => setMe('');
   const remembered = saved(ME_KEY);
-  if(remembered && ROSTER.some(m => m.name === remembered)) setMe(remembered);
+  if(remembered && ROSTER.some(m => m.key === remembered || m.name === remembered)) setMe(remembered);
 }
 // Phone layout drops the header row, so each cell carries its column name.
 function labelCells(sel){
@@ -1207,7 +1208,7 @@ function renderRoster(filter){
     const tr = el('tr');
     tr.appendChild(el('td','num', String(i+1)));
     const nm = el('td', null, m.name);
-    if(ME && m.name === ME.name){ nm.style.color='var(--gold)'; nm.style.fontWeight='600'; tr.style.background='var(--raise)'; }
+    if(ME && m.key === ME.key){ nm.style.color='var(--gold)'; nm.style.fontWeight='600'; tr.style.background='var(--raise)'; }
     tr.appendChild(nm);
     tr.appendChild(el('td','num', fmt(m.earned)));
     const sp = el('td','num', m.spent ? '\u2212' + fmt(m.spent) : '0');
@@ -1256,23 +1257,30 @@ function readMembers(recordRows, ledgerRows){
 
   const head = recordRows.length ? recordRows[0].map(c => c.trim()) : [];
   const nameAt = headerIndex(head, 'Player Name');
+  const idAt = headerIndex(head, 'Discord ID');
+  const totalAt = headerIndex(head, 'Total AP');
   const cols = EARN_COLUMNS.map(c => ({...c, i: headerIndex(head, c.header)}));
 
   const seen = new Set();
   return recordRows.slice(1).map(r => {
     const name = (r[nameAt] || '').trim();
-    if(!name || seen.has(name)) return null;
-    seen.add(name);
+    if(!name) return null;
+    // Keyed on Discord ID, because two accounts can carry the same display name
+    // and folding them together would quietly lose one of them.
+    const key = (idAt < 0 ? '' : (r[idAt] || '').trim()) || name;
+    if(seen.has(key)) return null;
+    seen.add(key);
     const att = {};
-    let earned = 0;
-    for(const c of cols){
-      const ap = c.i < 0 ? 0 : toNum(r[c.i]);
-      att[c.event] = ap;
-      earned += ap;
-    }
+    for(const c of cols) att[c.event] = c.i < 0 ? 0 : toNum(r[c.i]);
+    // Chielo's own Total AP is what it tells people in Discord, so that is the
+    // balance. Adding up the per-event columns would drop any column the bot adds
+    // later, and on the live sheet they do not always come to the total anyway.
+    const earned = totalAt < 0
+      ? Object.values(att).reduce((a, b) => a + b, 0)
+      : toNum(r[totalAt]);
     const spent = out.get(name) || 0, adjusted = inn.get(name) || 0;
     return {
-      name, att, earned, spent, adjusted,
+      key, name, att, earned, spent, adjusted,
       entries: count.get(name) || 0,
       balance: Math.min(earned + adjusted - spent, RULES.balance_cap),
     };

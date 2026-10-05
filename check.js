@@ -86,10 +86,15 @@ console.log('\nBalances');
 // One eval: a const declared in its own eval call does not leak to the next one.
 eval(grab('const EARN_COLUMNS', '\nconst tabUrl') + grab('const headerIndex', '\n// Every row Chielo closes'));
 const RECORDS = [
-  ['Discord ID', 'Player Name', 'Crusade AP', 'World Dungeon AP', 'Total AP'],
-  ['1', 'NC | Chielo', '390', '50', '440'],
-  ['2', 'NC | J0bee', '130', '0', '130'],
-  ['3', 'NC | Capped', '9000', '0', '9000'],
+  ['Discord ID', 'Player Name', 'Crusade AP', 'World Dungeon AP', 'Battle Field AP', 'Total AP'],
+  ['1', 'NC | Chielo', '390', '50', '0', '440'],
+  ['2', 'NC | J0bee', '130', '0', '0', '130'],
+  ['3', 'NC | Capped', '9000', '0', '0', '9000'],
+  // Two accounts, one display name. Both appear on the live sheet.
+  ['4', 'NC | Twin', '10', '0', '0', '10'],
+  ['5', 'NC | Twin', '20', '0', '0', '20'],
+  // Chielo's per-event columns do not always come to its own total.
+  ['6', 'NC | Mismatch', '100', '0', '20', '202'],
 ];
 const LEDGER = [
   ['date', 'member', 'item', 'qty', 'ap', 'note'],
@@ -103,6 +108,12 @@ check('spent is reported as a positive number', bal('NC | Chielo').spent, 300);
 check('a positive ledger row is a credit, not a spend', bal('NC | Chielo').adjusted, 25);
 check('the balance cap still applies', bal('NC | Capped').balance, RULES.balance_cap);
 check('earned is never silently capped', bal('NC | Capped').earned, 9000);
+check('two accounts sharing a display name both survive',
+  readMembers(RECORDS, LEDGER).filter(m => m.name === 'NC | Twin').length, 2);
+check('the bot's own total wins over adding the columns up',
+  bal('NC | Mismatch').earned, 202);
+check('a column the bot added is still shown in the breakdown',
+  bal('NC | Mismatch').att.battlefield_elite, 20);
 
 console.log('\nBidding Item tab');
 // Same eval as its helpers: readBidding closes over toNum, rowObjects and itemCost.
