@@ -49,7 +49,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   /* First section in a panel has the header above it already, so no double rule. */
   [data-panel]:not([hidden]) + [data-panel]{border-top:1px solid var(--line)}
   section[data-panel]:first-of-type{border-top:0}
-  nav.bar a.officer{color:var(--faint); margin-left:auto}
+  nav.bar a.officer{margin-left:auto}
 
   /* ---- header ---- */
   header.crest{ padding-block:38px 26px; display:grid; gap:13px }
@@ -417,7 +417,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   </details>
 
   <details class="fold" id="post" data-panel="post">
-    <summary>Officers &middot; build the loot post</summary>
+    <summary>Build the loot post</summary>
     <p class="sub">For officers, after the Guild Dungeon run. Tick what came out of storage, set quantities, copy the post into Discord. Prices and auction minimums come from the rules, so they are never typed wrong.</p>
 
     <div class="builder">
@@ -1044,9 +1044,9 @@ function wireNav(){
     const pick = links.some(a => a.dataset.panel === name) ? name : links[0].dataset.panel;
     for(const el of panels) el.hidden = el.dataset.panel !== pick;
     for(const a of links) a.classList.toggle('on', a.dataset.panel === pick);
-    // A folded section inside the panel you just asked for should be open.
-    const fold = document.querySelector('details.fold[data-panel="' + pick + '"]');
-    if(fold && pick === 'post') fold.open = true;
+    // Open the builder itself, by id. Matching on the panel picked up whichever
+    // fold came first in the document, which left the builder collapsed.
+    if(pick === 'post') document.getElementById('post').open = true;
     return pick;
   };
 
