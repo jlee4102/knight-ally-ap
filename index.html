@@ -1229,10 +1229,11 @@ function readListings(rows){
     if(!known) flags.push('no item called "' + r.item + '" in the rules');
     if(r.winner && !open && !paid) flags.push('winner recorded with no final_ap');
     if(paid && known){
-      if(known.method === 'fixed' && paid !== known.price)
-        flags.push('fixed price is ' + known.price + ' AP, not ' + paid);
-      else if(known.method !== 'fixed' && paid < min)
-        flags.push('under the ' + min + ' AP minimum');
+      const qty = toNum(r.qty) || 1;
+      if(known.method === 'fixed' && paid !== known.price * qty)
+        flags.push('fixed price is ' + (known.price * qty) + ' AP for ' + qty + ', not ' + paid);
+      else if(known.method !== 'fixed' && paid < min * qty)
+        flags.push('under the ' + (min * qty) + ' AP minimum for ' + qty);
     }
 
     return {
@@ -1343,10 +1344,12 @@ function buildVault(){
     tr.appendChild(td3);
 
     const td4 = el('td','num');
-    td4.appendChild(el('span','ap', fmt(l.paid || l.price)));
-    if(l.paid && l.paid !== l.price) td4.appendChild(el('span','ev-note', 'from ' + fmt(l.price)));
+    const lot = l.paid || l.price * l.qty;
+    td4.appendChild(el('span','ap', fmt(lot)));
+    if(l.qty > 1 && !l.paid) td4.appendChild(el('span','ev-note', fmt(l.price) + ' each × ' + l.qty));
+    if(l.paid && l.paid !== l.price * l.qty) td4.appendChild(el('span','ev-note', 'from ' + fmt(l.price * l.qty)));
     else if(l.open && ME){
-      const short = (l.paid || l.price) - ME.balance;
+      const short = lot - ME.balance;
       td4.appendChild(el('span', 'tick' + (short > 0 ? ' no' : ''),
         short > 0 ? fmt(short) + ' AP short' : 'you can afford this'));
     }

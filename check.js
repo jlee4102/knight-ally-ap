@@ -132,6 +132,15 @@ check('a fixed item charged the wrong price is flagged',
 check('a timestamp survives the round trip to the sheet and back',
   parseStamp(stamp(new Date(2026, 9, 4, 15, 49))).getHours(), 15);
 check('a blank closes cell does not crash the board', listing({5: ''}).closes, null);
+// qty and price_or_min are separate columns, so every comparison has to multiply.
+check('a lot of three under the per-item minimum is flagged',
+  listing({2: '3', 6: 'sold', 7: 'NC | Chielo', 8: '300'}).flags.length, 1);
+check('a lot of three at three times the minimum is fine',
+  listing({2: '3', 6: 'sold', 7: 'NC | Chielo', 8: '450'}).flags.length, 0);
+check('a fixed lot must be charged per item, times the quantity',
+  listing({1: 'blessing', 2: '3', 3: 'fixed', 6: 'sold', 7: 'NC | Chielo', 8: '8'}).flags.length, 1);
+check('a fixed lot charged correctly is fine',
+  listing({1: 'blessing', 2: '3', 3: 'fixed', 6: 'sold', 7: 'NC | Chielo', 8: '24'}).flags.length, 0);
 
 console.log('\nQuantities');
 eval(grab('function readQty', '\nasync function readScreenshot'));
