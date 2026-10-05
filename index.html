@@ -690,8 +690,16 @@ const lotsOf = i => LOTS.filter(l => l.i === i);
 
 function itemCost(it){ return it.price ?? it.min_bid ?? it.min_per_unit; }
 
+// Some loot never stacks — a skill book always drops on its own — so a reading of
+// two means two drops, which is two listings, not one line saying two.
 function addLot(i, qty){
-  LOTS.push({i, qty: Math.max(1, Math.round(qty) || 1)});
+  const cap = RULES.items[i].max_qty || 0;
+  let n = Math.max(1, Math.round(qty) || 1);
+  if(cap){
+    for(let k = 0; k < Math.ceil(n / cap); k++) LOTS.push({i, qty: cap});
+    return;
+  }
+  LOTS.push({i, qty: n});
 }
 
 function buildPicks(){
@@ -741,8 +749,13 @@ function renderLots(){
       + (lot.qty > 1 ? ' \u00b7 ' + itemCost(it) + ' each' : '')));
     const qty = document.createElement('input');
     qty.type = 'number'; qty.min = '1'; qty.value = lot.qty;
+    if(it.max_qty) qty.max = it.max_qty;
     qty.setAttribute('aria-label', 'How many ' + it.name + ' in this stack');
-    qty.addEventListener('input', () => { lot.qty = Math.max(1, Number(qty.value) || 1); refreshPost(); });
+    qty.addEventListener('input', () => {
+      const cap = it.max_qty || Infinity;
+      lot.qty = Math.min(cap, Math.max(1, Number(qty.value) || 1));
+      refreshPost();
+    });
     const del = el('button','x','\u00d7');
     del.type = 'button';
     del.setAttribute('aria-label', 'Remove this ' + it.name);
@@ -1287,6 +1300,8 @@ function readListings(rows){
 
     const flags = [];
     if(!known) flags.push('no item called "' + r.item + '" in the rules');
+    if(known && known.max_qty && toNum(r.qty) > known.max_qty)
+      flags.push(known.name + ' does not stack — list ' + toNum(r.qty) + ' of them separately');
     if(r.winner && !open && !paid) flags.push('winner recorded with no final_ap');
     if(paid && known){
       const qty = toNum(r.qty) || 1;

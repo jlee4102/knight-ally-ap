@@ -83,7 +83,7 @@
     { "channel": "source-of-wisdom", "name": "Source of Wisdom", "method": "fixed", "price": 150 },
     { "channel": "blessing", "name": "Blessing stone", "method": "fixed", "price": 8, "unit": "per stone" },
     { "channel": "remnants", "name": "Forgotten Remnant", "method": "fixed", "price": 8, "unit": "per remnant" },
-    { "channel": "skillbooks", "name": "Skill book", "method": "auction", "min_bid": 150, "bid_step": 25, "unit": "per book" },
+    { "channel": "skillbooks", "name": "Skill book", "method": "auction", "min_bid": 150, "bid_step": 25, "unit": "per book", "max_qty": 1 },
     { "channel": "gear-mats-apply", "name": "Gear material", "method": "fixed", "price": 5, "unit": "per unit" },
     { "channel": "potential", "name": "Crystal of Liberation (Potential)", "method": "fixed", "price": 100, "unit": "per stack of 20" },
     { "channel": "t3-gear-post", "name": "Epic T3 gear", "method": "auction", "min_bid": 100, "bid_step": 25 },
