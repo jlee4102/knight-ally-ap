@@ -28,8 +28,7 @@ Google Sheet `10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0`, three tabs, all rea
 | `AP Records` | Chielo | Running AP per member, one column per event type |
 | `Event Logs` | Chielo | One row per closed check-in: time, result, base AP, win bonus, **participant count**, participants |
 | `AP_LEDGER` | officers, by hand | Deductions, voids and corrections |
-| `AP_LISTINGS` | pasted from the loot post builder | What is posted, what it closes at, what it sold for |
-| `Bidding Item` | officers, by hand | A running bid list: `Item`, `AP Price`, `Status`, `Winner`, `Winning Bid` |
+| `Bidding Item` | pasted from the loot post builder; the Discord bidding system fills in results | `Item`, `AP Price`, `Status`, `Winner`, `Winning Bid` |
 
 `balance = AP Records total + ledger credits − ledger debits`, capped at `balance_cap`.
 
@@ -41,27 +40,11 @@ Debits and credits are summed **separately**. Netting them first makes a correct
 
 Auction winners pay their own bid, which no rules file can know, so `ap` is authoritative and `item` is only the link back to the loot board.
 
-### AP_LISTINGS
-
-`posted | item | qty | method | price_or_min | closes | status | winner | final_ap`
-
-The loot post builder writes these rows tab-separated. Copy, click the first empty cell under `posted`, paste — Sheets splits on tabs into the right columns. Times are `YYYY-MM-DD HH:MM`, which Sheets reads as real datetimes. `closes` is 24 h for an auction and 48 h for a fixed-price claim, both taken from `ap_rules.json`. Fill `winner` and `final_ap` by hand when it closes, then add the matching `AP_LEDGER` deduction.
-
-The site reads this tab back as **The vault**: open items sorted by what closes soonest, settled ones after. Anything past its `closes` time with `status` still `open` is marked *needs settling*.
-
-It checks what comes back rather than trusting it — a wrong number here is somebody's points. An unknown item key, a winning bid under the minimum, a fixed item charged the wrong price, or a winner with no `final_ap` each show a flag on the row.
-
-### Loot that never stacks
-
-An item with `"max_qty": 1` in `ap_rules.json` always drops on its own. The builder splits a reading of two into two separate listings rather than one line saying two, the quantity box will not go above the cap, and a sheet row claiming more is flagged on the vault board.
-
-Currently set on skill books and aura stones. Add it to any other item that drops one at a time.
-
 ### Bidding Item
 
-Read onto the vault board alongside `AP_LISTINGS`. `Available` means open; anything else is closed. Item names here are the officers own free text, so a name the rules do not know is shown as written and **not** flagged — only a name that does match is checked against its minimum. A winning bid under the asking price, or a winner with no bid, is flagged either way.
+The only source for the vault board. `Available` means open; anything else is closed. Item names here are the officers own free text, so a name the rules do not know is shown as written and **not** flagged — only a name that does match is checked against its minimum. A winning bid under the asking price, or a winner with no bid, is flagged either way.
 
-Two tabs describing the same thing will drift. If Chielo maintains this one, retire `AP_LISTINGS` and the loot post builder stops needing its second output box.
+The tab has no quantity column, so a stack is written into the name as `Skill book x3` and `AP Price` is what the whole stack costs. The reader strips the count back off, so the name still matches its rules entry and the minimum is checked against the multiplied price.
 
 ### Known gaps
 

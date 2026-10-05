@@ -109,79 +109,25 @@ check('a known item priced under its rules minimum is flagged',
   bid(['Skill book', '50', 'Available', '', '']).flags.length, 1);
 check('a known item priced at its minimum is fine',
   bid(['Skill book', '150', 'Available', '', '']).flags.length, 0);
+// The tab has no quantity column, so a stack carries its count in the name.
+check('a stack written into the name comes back as a quantity',
+  bid(['Skill book ×3', '450', 'Available', '', '']).qty, 3);
+check('the name still reaches its rules entry once the count is stripped',
+  bid(['Skill book ×3', '450', 'Available', '', '']).name, 'Skill book');
+check('a stack priced below its multiplied minimum is flagged',
+  bid(['Skill book ×3', '300', 'Available', '', '']).flags.length, 1);
+check('a plain name with no count is a quantity of one',
+  bid(['Skill book', '150', 'Available', '', '']).qty, 1);
 
-console.log('\nAP_LISTINGS rows');
-// `const` declared inside eval does not escape it, so hand these back explicitly.
-const { LISTING_HEAD, stamp } = new Function(
-  grab('const LISTING_HEAD', '\nfunction writeRows') + '; return {LISTING_HEAD, stamp};')();
-const fixedItem = RULES.items.find(i => i.method === 'fixed');
-const auctionItem = RULES.items.find(i => i.method !== 'fixed');
-const row = it => [
-  'posted', it.channel || it.name, 1, it.method, (it.price ?? i.min_bid ?? it.min_per_unit),
-  'closes', 'open', '', ''
-];
-check('a row has one cell per header column', row(fixedItem).length, LISTING_HEAD.length);
-check('the header is the one the sheet expects',
-  LISTING_HEAD.join('\t'), 'posted\titem\tqty\tmethod\tprice_or_min\tcloses\tstatus\twinner\tfinal_ap');
-check('a timestamp is a format Sheets reads as a datetime',
-  /^\d{4}-\d\d-\d\d \d\d:\d\d$/.test(stamp(new Date(2026, 9, 4, 9, 5))), true);
-check('midnight does not lose its padding', stamp(new Date(2026, 0, 1, 0, 0)), '2026-01-01 00:00');
-check('every sellable item has something to put in the item column',
-  RULES.items.filter(i => !(i.channel || i.name)).length, 0);
-check('an auction closes on the clock, a fixed price waits longer',
-  RULES.auction_rules.duration_hours < RULES.fixed_price_rules.unclaimed_after_hours, true);
-check('no item key contains a tab or newline that would break the paste',
-  RULES.items.filter(i => /[\t\n]/.test(i.channel || i.name)).length, 0);
-
-console.log('\nReading AP_LISTINGS back');
-// One eval again: readListings closes over itemCost, toNum and rowObjects, and a
-// const from a previous eval call is not visible to this one.
-eval(grab('function itemCost', '\nfunction buildPicks')
-   + grab('const headerIndex', '\nlet EVENTS'));
-const soon = new Date(Date.now() + 3600e3), past = new Date(Date.now() - 3600e3);
-const at = d => stamp(d);
-const listing = extra => readListings([
-  LISTING_HEAD,
-  ['2026-10-04 10:00', 'skillbooks', '1', 'auction', '150', at(soon), 'open', '', '', ...[]]
-    .map((v, i) => (extra && i in extra) ? extra[i] : v),
-])[0];
-
-check('a known item key resolves to its real name', listing().name, 'Skill book');
-check('an open auction in the future is not flagged as due', listing().due, false);
-check('an open auction past its close needs settling', listing({5: at(past)}).due, true);
-check('a settled row is no longer open', listing({6: 'sold'}).open, false);
-check('an unknown item key is flagged, not silently shown',
-  listing({1: 'not-a-real-item'}).flags.length, 1);
-check('a winning bid under the minimum is flagged',
-  listing({6: 'sold', 7: 'NC | Chielo', 8: '100'}).flags.length, 1);
-check('a winning bid over the minimum is fine',
-  listing({6: 'sold', 7: 'NC | Chielo', 8: '300'}).flags.length, 0);
-check('a winner with no price recorded is flagged',
-  listing({6: 'sold', 7: 'NC | Chielo'}).flags.length, 1);
-check('a fixed item charged the wrong price is flagged',
-  listing({1: 'blessing', 3: 'fixed', 6: 'sold', 7: 'NC | Chielo', 8: '99'}).flags.length, 1);
-check('a timestamp survives the round trip to the sheet and back',
-  parseStamp(stamp(new Date(2026, 9, 4, 15, 49))).getHours(), 15);
-check('a blank closes cell does not crash the board', listing({5: ''}).closes, null);
-// qty and price_or_min are separate columns, so every comparison has to multiply.
-// T3 crafting material stacks; skill books and aura stones do not.
-check('a lot of three under the per-item minimum is flagged',
-  listing({1: 't3-crafting-material', 2: '3', 6: 'sold', 7: 'NC | Chielo', 8: '150'}).flags.length, 1);
-check('a lot of three at three times the minimum is fine',
-  listing({1: 't3-crafting-material', 2: '3', 6: 'sold', 7: 'NC | Chielo', 8: '300'}).flags.length, 0);
-check('a fixed lot must be charged per item, times the quantity',
-  listing({1: 'blessing', 2: '3', 3: 'fixed', 6: 'sold', 7: 'NC | Chielo', 8: '8'}).flags.length, 1);
-check('an item that never stacks is flagged if the sheet says it did',
-  listing({1: 'skillbooks', 2: '2'}).flags.length, 1);
-check('one of a non-stacking item is fine', listing({1: 'skillbooks', 2: '1'}).flags.length, 0);
-check('the rules still record which loot never stacks',
-  RULES.items.filter(i => i.max_qty === 1).map(i => i.name),
-  ['Aura stone (red or green only)', 'Skill book']);
-check('a non-stacking item splits into one listing each',
-  (() => { const i = RULES.items.findIndex(x => x.channel === 'aura-stones');
-           return RULES.items[i].max_qty === 1 ? 3 : 1; })(), 3);
-check('a fixed lot charged correctly is fine',
-  listing({1: 'blessing', 2: '3', 3: 'fixed', 6: 'sold', 7: 'NC | Chielo', 8: '24'}).flags.length, 0);
+console.log('\nRows the builder writes');
+// The newline matters: the grabbed block ends on a comment line, so a return
+// appended directly to it would be commented out and the function returns nothing.
+const { LISTING_HEAD } = new Function(
+  grab('const LISTING_HEAD', '\nfunction writeRows') + '\nreturn {LISTING_HEAD};')();
+check('the header matches the Bidding Item tab',
+  LISTING_HEAD.join('\t'), 'Item\tAP Price\tStatus\tWinner\tWinning Bid');
+check('no item name contains a tab or newline that would break the paste',
+  RULES.items.filter(i => /[\t\n]/.test(i.name)).length, 0);
 
 console.log('\nQuantities');
 eval(grab('function readQty', '\nasync function readScreenshot'));

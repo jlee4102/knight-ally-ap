@@ -443,8 +443,8 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
         </div>
       </div>
       <div class="out">
-        <label for="rows-text" class="olbl">2 &middot; Rows for <code>AP_LISTINGS</code></label>
-        <p class="rowhint">Copy, click the first empty cell under <code>posted</code>, paste. Tab-separated, so it lands in the right columns. <code>status</code> starts as <code>open</code>; fill <code>winner</code> and <code>final_ap</code> when it closes.</p>
+        <label for="rows-text" class="olbl">2 &middot; Rows for <code>Bidding Item</code></label>
+        <p class="rowhint">Copy, click the first empty cell under <code>Item</code>, paste. Tab-separated, so it lands in the right columns. Everything goes up as <code>Available</code>; the Discord bidding system fills in the winner.</p>
         <textarea id="rows-text" spellcheck="false" style="min-height:120px"></textarea>
         <div class="out-bar">
           <button type="button" class="btn go" id="copy-rows">Copy rows</button>
@@ -469,7 +469,6 @@ const SHEET_ID = '10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0';
 const TAB_RECORDS = 'AP Records';
 const TAB_EVENTS  = 'Event Logs';
 const TAB_LEDGER  = 'AP_LEDGER';
-const TAB_LISTINGS = 'AP_LISTINGS';
 const TAB_BIDDING  = 'Bidding Item';
 
 // Columns on AP Records, mapped to the events in the rules file.
@@ -826,14 +825,12 @@ function writePost(){
   ta.value = L.join('\n');
 }
 
-const LISTING_HEAD = ['posted','item','qty','method','price_or_min','closes','status','winner','final_ap'];
+const LISTING_HEAD = ['Item','AP Price','Status','Winner','Winning Bid'];
 
-// Sheets splits a pasted cell on tabs, so tab-separated rows drop straight into the
-// right columns. Times are "YYYY-MM-DD HH:MM", which Sheets reads as a real datetime.
-const stamp = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-'
-  + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0')
-  + ':' + String(d.getMinutes()).padStart(2,'0');
-
+// Rows for the Bidding Item tab, which the Discord bidding system reads. Sheets
+// splits a pasted cell on tabs, so these drop straight into the right columns.
+// The tab has no quantity column, so a stack carries its count in the name and
+// the price is what the whole stack costs.
 function writeRows(){
   const ta = document.getElementById('rows-text');
   if(!LOTS.length){
@@ -841,22 +838,12 @@ function writeRows(){
     ta.placeholder = LISTING_HEAD.join('\t');
     return;
   }
-  const now = new Date();
-  const posted = stamp(now);
-  const plus = h => stamp(new Date(now.getTime() + h * 3600 * 1000));
-
   ta.value = LOTS.map(lot => {
     const it = RULES.items[lot.i];
     return [
-      posted,
-      it.channel || it.name,
-      lot.qty,
-      it.method,
-      itemCost(it),
-      // Fixed items sit until someone claims them; auctions close on the clock.
-      it.method === 'fixed' ? plus(RULES.fixed_price_rules.unclaimed_after_hours)
-                            : plus(RULES.auction_rules.duration_hours),
-      'open',
+      it.name + (lot.qty > 1 ? ' \u00d7' + lot.qty : ''),
+      itemCost(it) * lot.qty,
+      'Available',
       '',
       '',
     ].join('\t');
@@ -1280,87 +1267,34 @@ function readMembers(recordRows, ledgerRows){
   }).filter(Boolean);
 }
 
-// Sheets writes datetimes back as "YYYY-MM-DD HH:MM" or with seconds. Parse the
-// parts rather than handing the string to Date(), which is inconsistent across browsers.
-function parseStamp(v){
-  const m = String(v || '').match(/(\d{4})-(\d\d)-(\d\d)[ T](\d\d):(\d\d)/);
-  return m ? new Date(+m[1], +m[2] - 1, +m[3], +m[4], +m[5]) : null;
-}
-
-function since(ms){
-  const mins = Math.round(Math.abs(ms) / 60000);
-  if(mins < 60) return mins + 'm';
-  const h = Math.floor(mins / 60);
-  return h < 48 ? h + 'h ' + (mins % 60) + 'm' : Math.floor(h / 24) + 'd';
-}
-
-// What officers posted, read back so members can see the vault between loot posts.
-// The sheet is typed by hand once an item sells, so check what comes back rather
-// than trusting it: a wrong price here is someone's points.
-function readListings(rows){
-  const now = new Date();
-  return rowObjects(rows).filter(r => r.item).map(r => {
-    const known = RULES.items.find(i => i.channel === r.item || i.name === r.item);
-    const closes = parseStamp(r.closes);
-    const status = (r.status || 'open').toLowerCase();
-    const min = known ? itemCost(known) : toNum(r.price_or_min);
-    const paid = toNum(r.final_ap);
-    const open = status === 'open';
-
-    const flags = [];
-    if(!known) flags.push('no item called "' + r.item + '" in the rules');
-    if(known && known.max_qty && toNum(r.qty) > known.max_qty)
-      flags.push(known.name + ' does not stack — list ' + toNum(r.qty) + ' of them separately');
-    if(r.winner && !open && !paid) flags.push('winner recorded with no final_ap');
-    if(paid && known){
-      const qty = toNum(r.qty) || 1;
-      if(known.method === 'fixed' && paid !== known.price * qty)
-        flags.push('fixed price is ' + (known.price * qty) + ' AP for ' + qty + ', not ' + paid);
-      else if(known.method !== 'fixed' && paid < min * qty)
-        flags.push('under the ' + (min * qty) + ' AP minimum for ' + qty);
-    }
-
-    return {
-      name: known ? known.name : r.item,
-      unit: known ? known.unit : '',
-      qty: toNum(r.qty) || 1,
-      method: r.method || (known ? known.method : ''),
-      price: toNum(r.price_or_min) || min,
-      closes, status, paid, flags,
-      winner: r.winner || '',
-      open,
-      // Past its close and still open means an officer has not settled it yet.
-      due: open && closes && closes < now,
-      posted: parseStamp(r.posted),
-    };
-  });
-}
-
 // The officers' own bidding list. Names here are free text rather than keys from
 // the rules, so an unrecognised one is normal and not flagged; a name that does
 // match is still checked against its minimum.
 function readBidding(rows){
   return rowObjects(rows).filter(r => r.Item).map(r => {
+    // A stack is written into the name, since the tab has no quantity column.
+    const m = r.Item.match(/^(.*?)\s*[x\u00d7]\s*(\d{1,3})\s*$/i);
+    const label = (m ? m[1] : r.Item).trim();
+    const qty = m ? Number(m[2]) : 1;
     const known = RULES.items.find(i =>
-      [i.name, ...(i.aliases || [])].some(n => n.toLowerCase() === r.Item.toLowerCase()));
+      [i.name, ...(i.aliases || [])].some(n => n.toLowerCase() === label.toLowerCase()));
     const price = toNum(r['AP Price']);
     const paid = toNum(r['Winning Bid']);
     const open = /available/i.test(r.Status) && !/unavailable/i.test(r.Status);
 
     const flags = [];
-    if(known && price && price < itemCost(known))
-      flags.push('below the ' + itemCost(known) + ' AP minimum in the rules');
+    if(known && price && price < itemCost(known) * qty)
+      flags.push('below the ' + (itemCost(known) * qty) + ' AP minimum in the rules');
     if(paid && price && paid < price) flags.push('winning bid is under the asking price');
     if(r.Winner && !paid) flags.push('winner recorded with no winning bid');
 
     return {
-      name: known ? known.name : r.Item,
-      unit: '', qty: 1, method: 'auction',
+      name: known ? known.name : label,
+      unit: '', qty, method: 'auction',
       price, paid, flags,
       winner: r.Winner || '',
       status: open ? 'open' : (r.Status || 'closed').toLowerCase(),
       open, due: false, closes: null, posted: null,
-      source: 'bidding',
     };
   });
 }
@@ -1394,8 +1328,8 @@ async function loadRoster(){
     catch(e){ return []; }
   };
   try{
-    const [records, ledger, events, listings, bidding] = await Promise.all(
-      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS, TAB_LISTINGS, TAB_BIDDING].map(grab));
+    const [records, ledger, events, bidding] = await Promise.all(
+      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS, TAB_BIDDING].map(grab));
 
     ROSTER = readMembers(records, ledger);
     ROSTER.sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
@@ -1405,7 +1339,7 @@ async function loadRoster(){
     sub.textContent = `${ROSTER.length} members, ${EVENTS.length} events logged by Chielo`
       + (spent ? `, ${spent} ledger entries applied.` : '. No deductions recorded yet.');
 
-    LISTINGS = [...readListings(listings), ...readBidding(bidding)];
+    LISTINGS = readBidding(bidding);
     buildEvents();
     buildVault();
     fillPicker();
@@ -1424,7 +1358,7 @@ function buildVault(){
   tb.textContent = '';
 
   if(!LISTINGS.length){
-    sub.textContent = 'Nothing posted yet. Officers build the week\u2019s post below, then paste the rows into AP_LISTINGS.';
+    sub.textContent = 'Nothing up for bids. Officers build the week\u2019s post on the Officers tab, then paste the rows into Bidding Item.';
     const tr = el('tr'), td = el('td', null, 'The vault is empty.');
     td.colSpan = 5; td.style.color = 'var(--faint)'; tr.appendChild(td); tb.appendChild(tr);
     return;
@@ -1442,7 +1376,6 @@ function buildVault(){
       + (due ? ` ${due} past their close and waiting on an officer.` : '')
     : `Nothing open. ${LISTINGS.length} settled.`;
 
-  const now = new Date();
   for(const l of sorted){
     const tr = el('tr');
     if(l.due) tr.classList.add('due');
@@ -1475,7 +1408,6 @@ function buildVault(){
 
     const td5 = el('td');
     if(l.due) td5.appendChild(el('span','chip prop', 'needs settling'));
-    else if(l.open && l.closes) td5.appendChild(el('span', null, 'closes in ' + since(l.closes - now)));
     else if(l.open) td5.appendChild(el('span', null, 'open for bids'));
     else td5.appendChild(el('span', null, l.winner ? l.status + ' \u2014 ' + l.winner : l.status));
     tr.appendChild(td5);
