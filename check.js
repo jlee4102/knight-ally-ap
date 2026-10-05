@@ -55,8 +55,17 @@ check('a bound suffix is ignored', hit('Essence of the Sky (Bound)   Superior   
   'Essence of the Sky');
 check('a longer in-game name still finds the item it belongs to',
   hit("Forgotten Transcendent's Remnant (Bound)   Superior   14 d left"), 'Forgotten Remnant');
-check('an in-game name reaches the item it is priced under, via its alias',
-  hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1 - Main Round'), 'Gear material');
+check('an item with no rules entry is refused rather than priced as something else',
+  hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1 - Main Round'), null);
+// The aliases mechanism stays and is exercised here, so the next in-game name that
+// does not match a short name is one line of config rather than a code change.
+check('an alias reaches the item it belongs to', (() => {
+  const gear = RULES.items.find(i => i.channel === 'gear-mats-apply');
+  gear.aliases = ['Gear Crafting Material Selection Chest'];
+  const got = hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1');
+  delete gear.aliases;
+  return got;
+})(), 'Gear material');
 
 console.log('\nBalances');
 // One eval: a const declared in its own eval call does not leak to the next one.
