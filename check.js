@@ -71,8 +71,11 @@ check('every cap is a whole number of at least one',
   RULES.items.filter(i => 'max_qty' in i && !(Number.isInteger(i.max_qty) && i.max_qty >= 1))
     .map(i => i.name), []);
 check('scheduled events alone are 575 AP', sched, 575);
+// The rule is stated in prose in the config; this is what enforces it.
 check('no price exceeds one week of full activity',
   RULES.items.filter(i => (i.price ?? i.min_bid ?? i.min_per_unit) > full).map(i => i.name), []);
+check('the written rule does not restate a figure that can drift',
+  /[0-9],?[0-9]{3}\s*AP/.test(RULES.constraints.one_week_rule), false);
 
 console.log('\nScreenshot matcher');
 const byName = n => RULES.items.findIndex(i => i.name === n);
