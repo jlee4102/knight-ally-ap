@@ -93,45 +93,49 @@ console.log('\nBidding Item tab');
 // Same eval as its helpers: readBidding closes over toNum, rowObjects and itemCost.
 eval(grab('function itemCost', '\nfunction buildPicks')
    + grab('const headerIndex', '\nlet EVENTS'));
-const BID_HEAD = ['Item', 'AP Price', 'Status', 'Winner', 'Winning Bid', 'posted', 'qty', 'method', 'price_or_min'];
-const bid = row => readBidding([BID_HEAD, row])[0];
-check('an available row is open', bid(['Legacy', '69', 'Available', '', '']).open, true);
+const BID_HEAD = ['posted', 'Item', 'qty', 'method', 'price_or_min', 'AP Price', 'Status', 'Winner', 'Winning Bid'];
+// Named fields rather than a positional row, so reordering the tab does not
+// silently turn every one of these into a test of something else.
+const bid = f => readBidding([BID_HEAD, BID_HEAD.map(h => f[h] ?? '')])[0];
+check('an available row is open',
+  bid({Item: 'Legacy', 'AP Price': '69', Status: 'Available'}).open, true);
 check('an unavailable row is not open',
-  bid(['Test', '50', 'Unavailable', 'NC | Chielo', '100']).open, false);
+  bid({Item: 'Test', 'AP Price': '50', Status: 'Unavailable',
+       Winner: 'NC | Chielo', 'Winning Bid': '100'}).open, false);
 // Names on this tab are the officers' own, so an unknown one is normal.
 check('a name the rules do not know is kept and not flagged',
-  bid(['Sex Doll', '30', 'Available', '', '']).flags.length, 0);
+  bid({Item: 'Sex Doll', 'AP Price': '30', Status: 'Available'}).flags.length, 0);
 check('a winning bid under the asking price is flagged',
-  bid(['Legacy', '69', 'Unavailable', 'NC | Chielo', '50']).flags.length, 1);
+  bid({Item: 'Legacy', 'AP Price': '69', Status: 'Unavailable',
+       Winner: 'NC | Chielo', 'Winning Bid': '50'}).flags.length, 1);
 check('a winner with no bid recorded is flagged',
-  bid(['Legacy', '69', 'Unavailable', 'NC | Chielo', '']).flags.length, 1);
+  bid({Item: 'Legacy', 'AP Price': '69', Status: 'Unavailable',
+       Winner: 'NC | Chielo'}).flags.length, 1);
 check('a known item priced under its rules minimum is flagged',
-  bid(['Skill book', '50', 'Available', '', '']).flags.length, 1);
+  bid({Item: 'Skill book', 'AP Price': '50', Status: 'Available'}).flags.length, 1);
 check('a known item priced at its minimum is fine',
-  bid(['Skill book', '150', 'Available', '', '']).flags.length, 0);
-// The tab has no quantity column, so a stack carries its count in the name.
+  bid({Item: 'Skill book', 'AP Price': '150', Status: 'Available'}).flags.length, 0);
+// The name is what Discord shows, so a stack carries its count there too.
 check('a stack written into the name comes back as a quantity',
-  bid(['Skill book ×3', '450', 'Available', '', '']).qty, 3);
+  bid({Item: 'Skill book ×3', 'AP Price': '450', Status: 'Available'}).qty, 3);
 check('the name still reaches its rules entry once the count is stripped',
-  bid(['Skill book ×3', '450', 'Available', '', '']).name, 'Skill book');
+  bid({Item: 'Skill book ×3', 'AP Price': '450', Status: 'Available'}).name, 'Skill book');
 check('a stack priced below its multiplied minimum is flagged',
-  bid(['Skill book ×3', '300', 'Available', '', '']).flags.length, 1);
+  bid({Item: 'Skill book ×3', 'AP Price': '300', Status: 'Available'}).flags.length, 1);
 check('a plain name with no count is a quantity of one',
-  bid(['Skill book', '150', 'Available', '', '']).qty, 1);
+  bid({Item: 'Skill book', 'AP Price': '150', Status: 'Available'}).qty, 1);
+check('an explicit qty column wins over the count in the name',
+  bid({Item: 'Skill book ×9', qty: '1', 'AP Price': '150', Status: 'Available'}).qty, 1);
 
 console.log('\nRows the builder writes');
 // The newline matters: the grabbed block ends on a comment line, so a return
 // appended directly to it would be commented out and the function returns nothing.
 const { LISTING_HEAD } = new Function(
   grab('const LISTING_HEAD', '\nfunction writeRows') + '\nreturn {LISTING_HEAD};')();
-// The bidding bot writes Winner and Winning Bid by position, so the five columns
-// it owns must stay first and in this order. Detail columns go after them.
-check('the bot\'s five columns come first, in its order',
-  LISTING_HEAD.slice(0, 5).join('\t'), 'Item\tAP Price\tStatus\tWinner\tWinning Bid');
-check('the detail columns follow',
-  LISTING_HEAD.slice(5).join('\t'), 'posted\tqty\tmethod\tprice_or_min');
-check('an explicit qty column wins over the count in the name',
-  bid(['Skill book ×9', '150', 'Available', '', '', '', '1', 'auction', '150']).qty, 1);
+// A pasted row lands by position, so this has to stay in the tab's own order.
+check('the header is the Bidding Item tab, column for column',
+  LISTING_HEAD.join('\t'),
+  'posted\tItem\tqty\tmethod\tprice_or_min\tAP Price\tStatus\tWinner\tWinning Bid');
 check('no item name contains a tab or newline that would break the paste',
   RULES.items.filter(i => /[\t\n]/.test(i.name)).length, 0);
 

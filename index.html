@@ -444,7 +444,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
       </div>
       <div class="out">
         <label for="rows-text" class="olbl">2 &middot; Rows for <code>Bidding Item</code></label>
-        <p class="rowhint">Copy, click the first empty cell under <code>Item</code>, paste. Tab-separated, so it lands in the right columns. Everything goes up as <code>Available</code>; the Discord bidding system fills in <code>Winner</code> and <code>Winning Bid</code>. Use <strong>Copy header row</strong> once if the tab does not have the later columns yet.</p>
+        <p class="rowhint">Copy, click the first empty cell under <code>Item</code>, paste. Tab-separated, so it lands in the right columns. Everything goes up as <code>Available</code>; the Discord bidding system fills in <code>Winner</code> and <code>Winning Bid</code>.</p>
         <textarea id="rows-text" spellcheck="false" style="min-height:120px"></textarea>
         <div class="out-bar">
           <button type="button" class="btn go" id="copy-rows">Copy rows</button>
@@ -825,11 +825,10 @@ function writePost(){
   ta.value = L.join('\n');
 }
 
-// The Discord bidding system owns the first five columns and writes Winner and
-// Winning Bid back into them, so nothing is ever inserted before them. The rest is
-// detail the builder knows and the sheet would otherwise lose.
-const LISTING_HEAD = ['Item','AP Price','Status','Winner','Winning Bid',
-                      'posted','qty','method','price_or_min'];
+// Exactly the column order on the Bidding Item tab. The reader matches on header
+// names so it survives a reshuffle, but a pasted row lands by position and does not.
+const LISTING_HEAD = ['posted','Item','qty','method','price_or_min',
+                      'AP Price','Status','Winner','Winning Bid'];
 
 const stamp = d => d.getFullYear() + '-' + String(d.getMonth()+1).padStart(2,'0') + '-'
   + String(d.getDate()).padStart(2,'0') + ' ' + String(d.getHours()).padStart(2,'0')
@@ -850,16 +849,16 @@ function writeRows(){
   ta.value = LOTS.map(lot => {
     const it = RULES.items[lot.i];
     return [
+      posted,
       // The name is what Discord shows, so the count goes in it as well as its column.
       it.name + (lot.qty > 1 ? ' \u00d7' + lot.qty : ''),
+      lot.qty,
+      it.method,
+      itemCost(it),
       itemCost(it) * lot.qty,
       'Available',
       '',
       '',
-      posted,
-      lot.qty,
-      it.method,
-      itemCost(it),
     ].join('\t');
   }).join('\n');
 }

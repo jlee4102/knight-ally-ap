@@ -44,9 +44,13 @@ Auction winners pay their own bid, which no rules file can know, so `ap` is auth
 
 The only source for the vault board. `Available` means open; anything else is closed. Item names here are the officers own free text, so a name the rules do not know is shown as written and **not** flagged — only a name that does match is checked against its minimum. A winning bid under the asking price, or a winner with no bid, is flagged either way.
 
-Columns A-E (`Item`, `AP Price`, `Status`, `Winner`, `Winning Bid`) belong to the Discord bidding system, which writes the last two back by position. **Never insert a column before them.**
+Nine columns, in this order:
 
-The builder adds four more after them — `posted`, `qty`, `method`, `price_or_min` — which is detail the bot does not carry.
+```
+posted  Item  qty  method  price_or_min  AP Price  Status  Winner  Winning Bid
+```
+
+`LISTING_HEAD` in `index.html` must match it **column for column** — a pasted row lands by position. The reader matches on header names, so it survives a reshuffle; the builder does not. A check pins the order.
 
 A stack also goes into the name as `Skill book x3`, because the name is what Discord shows; `AP Price` is what the whole stack costs. Reading back, an explicit `qty` wins and the count in the name is the fallback, so the name still matches its rules entry and the minimum is checked against the multiplied price.
 
