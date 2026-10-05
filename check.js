@@ -93,7 +93,7 @@ console.log('\nBidding Item tab');
 // Same eval as its helpers: readBidding closes over toNum, rowObjects and itemCost.
 eval(grab('function itemCost', '\nfunction buildPicks')
    + grab('const headerIndex', '\nlet EVENTS'));
-const BID_HEAD = ['Item', 'AP Price', 'Status', 'Winner', 'Winning Bid'];
+const BID_HEAD = ['Item', 'AP Price', 'Status', 'Winner', 'Winning Bid', 'posted', 'qty', 'method', 'price_or_min'];
 const bid = row => readBidding([BID_HEAD, row])[0];
 check('an available row is open', bid(['Legacy', '69', 'Available', '', '']).open, true);
 check('an unavailable row is not open',
@@ -124,8 +124,14 @@ console.log('\nRows the builder writes');
 // appended directly to it would be commented out and the function returns nothing.
 const { LISTING_HEAD } = new Function(
   grab('const LISTING_HEAD', '\nfunction writeRows') + '\nreturn {LISTING_HEAD};')();
-check('the header matches the Bidding Item tab',
-  LISTING_HEAD.join('\t'), 'Item\tAP Price\tStatus\tWinner\tWinning Bid');
+// The bidding bot writes Winner and Winning Bid by position, so the five columns
+// it owns must stay first and in this order. Detail columns go after them.
+check('the bot\'s five columns come first, in its order',
+  LISTING_HEAD.slice(0, 5).join('\t'), 'Item\tAP Price\tStatus\tWinner\tWinning Bid');
+check('the detail columns follow',
+  LISTING_HEAD.slice(5).join('\t'), 'posted\tqty\tmethod\tprice_or_min');
+check('an explicit qty column wins over the count in the name',
+  bid(['Skill book ×9', '150', 'Available', '', '', '', '1', 'auction', '150']).qty, 1);
 check('no item name contains a tab or newline that would break the paste',
   RULES.items.filter(i => /[\t\n]/.test(i.name)).length, 0);
 
