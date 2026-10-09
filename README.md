@@ -66,7 +66,7 @@ It does **not** read stack sizes. The quantity is painted on the item icon as a 
 
 ### Known gaps
 
-- Nothing writes to the sheet from the page; officers edit `AP_LEDGER` directly.
+- Nothing writes to the sheet from the page. The loot post builder produces rows to paste into `Bidding Item`; everything else the bot writes itself.
 - Caves turnout tiers are not applied yet even though `Event Logs` now carries the headcount — `AP Records` arrives pre-totalled by Chielo, so applying our own tiers would disagree with what the bot tells people in Discord.
 
 ## Running it locally
