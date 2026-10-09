@@ -939,22 +939,48 @@ function readQty(line){
 // The stack size is painted on the item's icon, not written in the row, so it needs
 // its own pass: crop the icon beside each matched line, blow it up, and read digits
 // only. A badge that cannot be read counts as one rather than guessing.
-async function readBadge(worker, bitmap, box, pitch){
-  // Scale everything off the row pitch, not the text height: the icon is about as
-  // tall as one row and sits immediately left of the name, at any screen size.
-  // These fractions were measured off a real storage screenshot: the badge sits in
-  // the icon's lower-right, and anything above it is artwork that reads as noise.
-  const side = Math.round(pitch * 0.9);
-  const x1 = Math.max(0, box.x0 - 2), x0 = Math.max(0, x1 - Math.round(side * 0.75));
-  const cy = (box.y0 + box.y1) / 2;
-  const y0 = Math.max(0, Math.round(cy + side * 0.12));
+// Blow the screenshot up and pull the contrast apart. Tesseract needs roughly
+// twice the type size a person does, and the stretch separates pale text from the
+// artwork behind it without flattening either into a solid block.
+async function magnify(file){
+  const bmp = await createImageBitmap(file);
+  const scale = Math.max(1, Math.min(4, Math.round(2600 / bmp.width)));
+  const c = document.createElement('canvas');
+  c.width = bmp.width * scale;
+  c.height = bmp.height * scale;
+  const x = c.getContext('2d', {willReadFrequently: true});
+  x.imageSmoothingEnabled = true;
+  x.imageSmoothingQuality = 'high';
+  x.drawImage(bmp, 0, 0, c.width, c.height);
+  const img = x.getImageData(0, 0, c.width, c.height), d = img.data;
+  for(let i = 0; i < d.length; i += 4){
+    const lum = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
+    const v = Math.max(0, Math.min(255, (lum - 70) * 2.4));
+    d[i] = d[i+1] = d[i+2] = v;
+  }
+  x.putImageData(img, 0, 0);
+  return {canvas: c, raw: bmp, scale};
+}
+
+async function readBadge(worker, bitmap, box, pitch, scale){
+  // Everything is scaled off the row pitch rather than the text height, so it holds
+  // at any screen size. The text pass runs on a magnified copy, so divide back into
+  // the original's coordinates: a tiny digit reads better from untouched pixels.
+  // Tesseract sometimes takes the icon itself as leading characters and sometimes
+  // does not, so the window spans both sides of where the line starts; the only
+  // digits in that strip are the badge.
+  const side = Math.round(pitch / scale * 0.9);
+  const bx = box.x0 / scale, cy = (box.y0 + box.y1) / 2 / scale;
+  const x0 = Math.max(0, Math.round(bx - side));
+  const x1 = Math.min(bitmap.width, Math.round(bx + side));
+  const y0 = Math.max(0, Math.round(cy));
   const y1 = Math.min(bitmap.height, Math.round(cy + side * 0.55));
   const cw = x1 - x0, ch = y1 - y0;
   if(cw < 8 || ch < 6) return null;
 
-  const scale = 6;
+  const zoom = 6;   // the badge is a handful of pixels; give the reader something to work with
   const c = document.createElement('canvas');
-  c.width = cw * scale; c.height = ch * scale;
+  c.width = cw * zoom; c.height = ch * zoom;
   const ctx = c.getContext('2d', {willReadFrequently: true});
   ctx.imageSmoothingEnabled = false;
   ctx.drawImage(bitmap, x0, y0, cw, ch, 0, 0, c.width, c.height);
@@ -972,9 +998,12 @@ async function readBadge(worker, bitmap, box, pitch){
 
   try{
     const res = await worker.recognize(c);
+    // Only a lone digit is trusted. Every real badge in the screenshots so far is
+    // one, and the misreads are all two: a stray mark beside a 1 came back as 11,
+    // and a 2 as 51. A stack of ten or more therefore reads as one and the officer
+    // corrects it, which is the cheap mistake rather than the expensive one.
     const digits = (res.data.text || '').replace(/[^0-9]/g, '');
-    const n = Number(digits.slice(0, 3));
-    return n >= 1 && n <= 999 ? n : null;
+    return /^[1-9]$/.test(digits) ? Number(digits) : null;
   }catch(e){ return null; }
 }
 
@@ -998,20 +1027,18 @@ async function readScreenshot(file){
       logger: m => { if(m.status === 'recognizing text') show('Reading the screenshot\u2026 ' + Math.round(m.progress * 100) + '%', true); }
     });
 
-    const res = await worker.recognize(file, {}, {blocks: true});
+    // A game screenshot is small type on busy artwork: at its own size the reader
+    // returns things like "rian Bresing sene" and matches nothing. Scaling it up
+    // and pulling the contrast apart first is the difference between two rows read
+    // and all of them. Everything downstream works in this canvas's coordinates.
+    const {canvas: page, raw, scale} = await magnify(file);
+    const res = await worker.recognize(page, {}, {blocks: true});
 
-    // Walk the page structure for lines and their boxes. Older builds hand back a
-    // flat data.lines instead, so take whichever is there.
+    // Lines and their boxes. Older builds hand back a flat data.lines instead.
     const lines = [];
-    const walk = n => {
-      if(!n) return;
-      if(Array.isArray(n)) return n.forEach(walk);
-      if(n.text != null && n.bbox && !n.blocks && !n.paragraphs && !n.lines && !n.words) return;
-      if(n.lines) n.lines.forEach(l => lines.push(l));
-      walk(n.blocks || n.paragraphs || null);
-    };
-    walk(res.data.blocks ? {blocks: res.data.blocks} : null);
-    if(res.data.blocks) for(const blk of res.data.blocks) for(const par of (blk.paragraphs || [])) for(const l of (par.lines || [])) lines.push(l);
+    for(const blk of (res.data.blocks || []))
+      for(const par of (blk.paragraphs || []))
+        for(const l of (par.lines || [])) lines.push(l);
     if(!lines.length && res.data.lines) lines.push(...res.data.lines);
 
     const rows = lines.length
@@ -1029,7 +1056,7 @@ async function readScreenshot(file){
     if(pitch && matched.some(r => r.bbox)){
       show('Reading the stack sizes\u2026', true);
       try{
-        bitmap = await createImageBitmap(file);
+        bitmap = raw;
         await worker.setParameters({tessedit_char_whitelist: '0123456789', tessedit_pageseg_mode: '7'});
       }catch(e){ bitmap = null; }
     }
@@ -1038,7 +1065,7 @@ async function readScreenshot(file){
     for(const r of matched){
       let qty = readQty(r.text);
       if(bitmap && r.bbox){
-        const badge = await readBadge(worker, bitmap, r.bbox, pitch);
+        const badge = await readBadge(worker, bitmap, r.bbox, pitch, scale);
         if(badge){ qty = badge; read++; }
       }
       addLot(r.m.index, qty);
@@ -1048,7 +1075,7 @@ async function readScreenshot(file){
 
     show(matched.length + (matched.length === 1 ? ' stack' : ' stacks') + ' of ' + kinds.size
       + (kinds.size === 1 ? ' item, ' : ' items, ')
-      + (read ? read + ' quantity' + (read === 1 ? '' : 'ies') + ' read off the icons'
+      + (read ? read + (read === 1 ? ' quantity' : ' quantities') + ' read off the icons'
               : 'quantities not readable')
       + ' \u2014 check them before you copy.');
   }catch(err){
