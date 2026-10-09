@@ -54,6 +54,12 @@ posted  Item  qty  method  price_or_min  AP Price  Status  Winner  Winning Bid
 
 A stack also goes into the name as `Skill book x3`, because the name is what Discord shows; `AP Price` is what the whole stack costs. Reading back, an explicit `qty` wins and the count in the name is the fallback, so the name still matches its rules entry and the minimum is checked against the multiplied price.
 
+### Reading a screenshot
+
+The image is scaled to about 2600px wide with the contrast stretched before the text pass. At its own size the reader returns things like `rian Bresing sene` and matches almost nothing; scaled up it reads every row.
+
+It does **not** read stack sizes. The quantity is painted on the item icon as a handful of pixels, and reading it was wrong more often than right - a 2 came back as 51, a stray mark in the artwork as 7. It also rested on crop fractions and a contrast threshold measured from two screenshots, which another officer's screen would not match. Every row starts at one and the officer types the counts.
+
 ### Known gaps
 
 - Nothing writes to the sheet from the page; officers edit `AP_LEDGER` directly.

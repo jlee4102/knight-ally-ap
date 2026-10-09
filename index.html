@@ -423,7 +423,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 
     <div class="builder">
       <div class="drop" id="drop">
-        <p>Drop a screenshot of the storage tab here to pre-tick the list. It reads the item names and guesses — always check what it ticked before you copy.</p>
+        <p>Drop a screenshot of the storage tab here. It reads the item names and adds one line per row. The stack sizes are painted on the icons and can't be read reliably, so set those yourself — and check what it ticked before you copy.</p>
         <input type="file" id="shot" accept="image/*" hidden>
         <button type="button" class="btn" id="shot-btn">Read a screenshot</button>
         <span class="ocr-note" id="ocr-note" hidden></span>
@@ -959,52 +959,7 @@ async function magnify(file){
     d[i] = d[i+1] = d[i+2] = v;
   }
   x.putImageData(img, 0, 0);
-  return {canvas: c, raw: bmp, scale};
-}
-
-async function readBadge(worker, bitmap, box, pitch, scale){
-  // Everything is scaled off the row pitch rather than the text height, so it holds
-  // at any screen size. The text pass runs on a magnified copy, so divide back into
-  // the original's coordinates: a tiny digit reads better from untouched pixels.
-  // Tesseract sometimes takes the icon itself as leading characters and sometimes
-  // does not, so the window spans both sides of where the line starts; the only
-  // digits in that strip are the badge.
-  const side = Math.round(pitch / scale * 0.9);
-  const bx = box.x0 / scale, cy = (box.y0 + box.y1) / 2 / scale;
-  const x0 = Math.max(0, Math.round(bx - side));
-  const x1 = Math.min(bitmap.width, Math.round(bx + side));
-  const y0 = Math.max(0, Math.round(cy));
-  const y1 = Math.min(bitmap.height, Math.round(cy + side * 0.55));
-  const cw = x1 - x0, ch = y1 - y0;
-  if(cw < 8 || ch < 6) return null;
-
-  const zoom = 6;   // the badge is a handful of pixels; give the reader something to work with
-  const c = document.createElement('canvas');
-  c.width = cw * zoom; c.height = ch * zoom;
-  const ctx = c.getContext('2d', {willReadFrequently: true});
-  ctx.imageSmoothingEnabled = false;
-  ctx.drawImage(bitmap, x0, y0, cw, ch, 0, 0, c.width, c.height);
-
-  // The badge is light type over dark artwork. Push it to black on white so the
-  // digits survive; anything mid-tone is background.
-  const img = ctx.getImageData(0, 0, c.width, c.height);
-  const d = img.data;
-  for(let i = 0; i < d.length; i += 4){
-    const lum = 0.299 * d[i] + 0.587 * d[i+1] + 0.114 * d[i+2];
-    const v = lum > 170 ? 0 : 255;
-    d[i] = d[i+1] = d[i+2] = v; d[i+3] = 255;
-  }
-  ctx.putImageData(img, 0, 0);
-
-  try{
-    const res = await worker.recognize(c);
-    // Only a lone digit is trusted. Every real badge in the screenshots so far is
-    // one, and the misreads are all two: a stray mark beside a 1 came back as 11,
-    // and a 2 as 51. A stack of ten or more therefore reads as one and the officer
-    // corrects it, which is the cheap mistake rather than the expensive one.
-    const digits = (res.data.text || '').replace(/[^0-9]/g, '');
-    return /^[1-9]$/.test(digits) ? Number(digits) : null;
-  }catch(e){ return null; }
+  return c;
 }
 
 async function readScreenshot(file){
@@ -1031,7 +986,7 @@ async function readScreenshot(file){
     // returns things like "rian Bresing sene" and matches nothing. Scaling it up
     // and pulling the contrast apart first is the difference between two rows read
     // and all of them. Everything downstream works in this canvas's coordinates.
-    const {canvas: page, raw, scale} = await magnify(file);
+    const page = await magnify(file);
     const res = await worker.recognize(page, {}, {blocks: true});
 
     // Lines and their boxes. Older builds hand back a flat data.lines instead.
@@ -1048,36 +1003,22 @@ async function readScreenshot(file){
     const matched = rows.map(r => ({...r, m: matchItem(r.text)})).filter(r => r.m);
     if(!matched.length){ show('Nothing recognised \u2014 tick the items by hand.'); return; }
 
-    const tops = matched.map(r => r.bbox && r.bbox.y0).filter(v => v != null).sort((a, b) => a - b);
-    const gaps = tops.slice(1).map((t, i) => t - tops[i]).filter(g => g > 4).sort((a, b) => a - b);
-    const pitch = gaps.length ? gaps[Math.floor(gaps.length / 2)] : 0;
-
-    let bitmap = null, read = 0;
-    if(pitch && matched.some(r => r.bbox)){
-      show('Reading the stack sizes\u2026', true);
-      try{
-        bitmap = raw;
-        await worker.setParameters({tessedit_char_whitelist: '0123456789', tessedit_pageseg_mode: '7'});
-      }catch(e){ bitmap = null; }
-    }
-
+    // The stack size is painted on the icon as a handful of pixels, and reading it
+    // was wrong more often than right: a 2 came back as 51, a stray mark in the
+    // artwork as 7. It also depended on crop fractions and a contrast threshold
+    // measured from two screenshots, which another officer's screen would not
+    // match. Every row therefore starts at one and the officer sets the counts,
+    // because a confidently wrong quantity costs somebody real AP.
     const kinds = new Set();
     for(const r of matched){
-      let qty = readQty(r.text);
-      if(bitmap && r.bbox){
-        const badge = await readBadge(worker, bitmap, r.bbox, pitch, scale);
-        if(badge){ qty = badge; read++; }
-      }
-      addLot(r.m.index, qty);
+      addLot(r.m.index, readQty(r.text));
       kinds.add(r.m.index);
     }
     refreshPost();
 
     show(matched.length + (matched.length === 1 ? ' stack' : ' stacks') + ' of ' + kinds.size
-      + (kinds.size === 1 ? ' item, ' : ' items, ')
-      + (read ? read + (read === 1 ? ' quantity' : ' quantities') + ' read off the icons'
-              : 'quantities not readable')
-      + ' \u2014 check them before you copy.');
+      + (kinds.size === 1 ? ' item' : ' items')
+      + ' \u2014 now set the quantities from the screenshot.');
   }catch(err){
     show('Could not read that image. Tick the items by hand.');
   }finally{
