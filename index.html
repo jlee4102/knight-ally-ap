@@ -290,6 +290,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <a href="#vault" data-panel="vault">The vault</a>
     <a href="#standings" data-panel="standings">Standings</a>
     <a href="#week" data-panel="week">Earning</a>
+    <a href="#spend" data-panel="spend">Purchases</a>
     <a href="#events" data-panel="events">Check-ins</a>
     <a href="#post" data-panel="post" class="officer">Officers</a>
   </nav>
@@ -342,6 +343,19 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <div class="tile"><span class="k">Scheduled only</span><span class="v" id="t-sched">—</span><span class="n">no grinding</span></div>
     <div class="tile"><span class="k">Balance cap</span><span class="v" id="t-cap">—</span><span class="n">anything above is not credited</span></div>
   </div>
+
+  <section id="spend" data-panel="spend">
+    <h2>Purchases</h2>
+    <p class="sub" id="spend-sub">Loading…</p>
+    <div class="scroll">
+      <table id="spend-table">
+        <thead><tr>
+          <th class="num">When</th><th>Member</th><th>Bought</th><th class="num">AP</th><th class="num">Left</th>
+        </tr></thead>
+        <tbody></tbody>
+      </table>
+    </div>
+  </section>
 
   <section id="events" data-panel="events">
     <h2>Latest check-ins</h2>
@@ -471,6 +485,7 @@ const TAB_RECORDS = 'AP Records';
 const TAB_EVENTS  = 'Event Logs';
 const TAB_LEDGER  = 'AP_LEDGER';
 const TAB_BIDDING  = 'Bidding Item';
+const TAB_SPEND    = 'AP Transactions';
 
 // Columns on AP Records, mapped to the events in the rules file.
 const EARN_COLUMNS = [
@@ -1156,7 +1171,8 @@ function setMe(key){
       if(n) c.appendChild(el('span','n',n));
       body.appendChild(c);
     };
-    cell('Balance', fmt(bal), ME.spent ? fmt(ME.earned) + ' earned, ' + fmt(ME.spent) + ' spent' : 'nothing spent yet');
+    cell('Balance', fmt(bal), fmt(ME.earned) + ' earned'
+      + (ME.spent ? ', ' + fmt(ME.spent) + ' spent' : ', nothing spent yet'));
     cell('Rank', '#' + rank, 'of ' + ROSTER.length);
     const top = EARN_COLUMNS
       .map(c => ({label: c.label, ap: ME.att[c.event] || 0}))
@@ -1252,6 +1268,8 @@ function readMembers(recordRows, ledgerRows){
   const nameAt = headerIndex(head, 'Player Name');
   const idAt = headerIndex(head, 'Discord ID');
   const totalAt = headerIndex(head, 'Total AP');
+  const lifeAt = headerIndex(head, 'Lifetime AP Earned');
+  const spentAt = headerIndex(head, 'AP Spent');
   const cols = EARN_COLUMNS.map(c => ({...c, i: headerIndex(head, c.header)}));
 
   const seen = new Set();
@@ -1268,16 +1286,37 @@ function readMembers(recordRows, ledgerRows){
     // Chielo's own Total AP is what it tells people in Discord, so that is the
     // balance. Adding up the per-event columns would drop any column the bot adds
     // later, and on the live sheet they do not always come to the total anyway.
-    const earned = totalAt < 0
-      ? Object.values(att).reduce((a, b) => a + b, 0)
-      : toNum(r[totalAt]);
-    const spent = out.get(name) || 0, adjusted = inn.get(name) || 0;
+    // The bot keeps its own books: Lifetime AP Earned, AP Spent, and a Total AP
+    // that already nets the two. Reading Total as "earned" made every purchase
+    // invisible - the balance was right, the Spent column said zero. AP_LEDGER is
+    // only for what the bot cannot know: voids and officer corrections.
+    const total = totalAt < 0 ? Object.values(att).reduce((a, b) => a + b, 0) : toNum(r[totalAt]);
+    const lifetime = lifeAt < 0 ? total : toNum(r[lifeAt]);
+    const botSpent = spentAt < 0 ? 0 : toNum(r[spentAt]);
+    const byHand = out.get(name) || 0, adjusted = inn.get(name) || 0;
     return {
-      key, name, att, earned, spent, adjusted,
+      key, name, att, adjusted,
+      earned: lifetime + adjusted,
+      spent: botSpent + byHand,
       entries: count.get(name) || 0,
-      balance: Math.min(earned + adjusted - spent, RULES.balance_cap),
+      balance: Math.min(total + adjusted - byHand, RULES.balance_cap),
     };
   }).filter(Boolean);
+}
+
+// Every purchase the bidding bot has put through, newest first. This is the
+// receipt trail: who paid what, and what their balance was either side of it.
+function readSpend(rows){
+  return rowObjects(rows).filter(r => r['Player Name']).map(r => ({
+    when: (r['Date UTC'] || '').replace('T', ' ').slice(0, 16),
+    name: r['Player Name'],
+    method: r.Method || '',
+    item: r.Item || '',
+    qty: toNum(r.Qty) || 1,
+    ap: toNum(r['AP Charged']),
+    after: toNum(r['Balance After']),
+    status: (r.Status || '').toUpperCase(),
+  })).reverse();
 }
 
 // The officers' own bidding list. Names here are free text rather than keys from
@@ -1330,7 +1369,7 @@ function readEvents(rows){
     .reverse();
 }
 
-let EVENTS = [], LISTINGS = [];
+let EVENTS = [], LISTINGS = [], SPEND = [];
 
 async function loadRoster(){
   const sub = document.getElementById('standings-sub');
@@ -1341,8 +1380,8 @@ async function loadRoster(){
     catch(e){ return []; }
   };
   try{
-    const [records, ledger, events, bidding] = await Promise.all(
-      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS, TAB_BIDDING].map(grab));
+    const [records, ledger, events, bidding, spend] = await Promise.all(
+      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS, TAB_BIDDING, TAB_SPEND].map(grab));
 
     ROSTER = readMembers(records, ledger);
     ROSTER.sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
@@ -1353,8 +1392,10 @@ async function loadRoster(){
       + (spent ? `, ${spent} ledger entries applied.` : '. No deductions recorded yet.');
 
     LISTINGS = readBidding(bidding);
+    SPEND = readSpend(spend);
     buildEvents();
     buildVault();
+    buildSpend();
     fillPicker();
     refresh();
     renderRoster(document.getElementById('search').value);
@@ -1428,6 +1469,45 @@ function buildVault(){
     tb.appendChild(tr);
   }
   labelCells('#vault-table');
+}
+
+function buildSpend(){
+  const tb = document.querySelector('#spend-table tbody');
+  const sub = document.getElementById('spend-sub');
+  if(!tb) return;
+  tb.textContent = '';
+
+  if(!SPEND.length){
+    sub.textContent = 'Nothing bought yet.';
+    const tr = el('tr'), td = el('td', null, 'No purchases recorded.');
+    td.colSpan = 5; td.style.color = 'var(--faint)'; tr.appendChild(td); tb.appendChild(tr);
+    labelCells('#spend-table');
+    return;
+  }
+
+  const total = SPEND.reduce((n, t) => n + t.ap, 0);
+  const mine = ME ? SPEND.filter(t => t.name === ME.name) : [];
+  sub.textContent = `${SPEND.length} purchase${SPEND.length === 1 ? '' : 's'}, ${fmt(total)} AP spent in total`
+    + (ME && mine.length ? `. ${mine.length} of them yours, ${fmt(mine.reduce((n, t) => n + t.ap, 0))} AP.` : '.');
+
+  for(const t of SPEND.slice(0, 30)){
+    const tr = el('tr');
+    if(ME && t.name === ME.name) tr.style.background = 'var(--raise)';
+    tr.appendChild(el('td','num', t.when));
+    tr.appendChild(el('td', null, t.name));
+    const what = el('td');
+    what.appendChild(el('span','ev-name', t.item + (t.qty > 1 ? ' \u00d7' + t.qty : '')));
+    what.appendChild(el('span','ev-note', t.method));
+    tr.appendChild(what);
+    const ap = el('td','num ap', '\u2212' + fmt(t.ap));
+    ap.style.color = 'var(--crimson)';
+    tr.appendChild(ap);
+    const left = el('td','num', fmt(t.after));
+    if(t.status && t.status !== 'COMPLETE') left.appendChild(el('span','flag', t.status));
+    tr.appendChild(left);
+    tb.appendChild(tr);
+  }
+  labelCells('#spend-table');
 }
 
 function buildEvents(){

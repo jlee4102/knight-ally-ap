@@ -117,16 +117,18 @@ check('an alias reaches the item it belongs to', (() => {
 console.log('\nBalances');
 // One eval: a const declared in its own eval call does not leak to the next one.
 eval(grab('const EARN_COLUMNS', '\nconst tabUrl') + grab('const headerIndex', '\n// Every row Chielo closes'));
+// Column order as the bot writes it. Total AP already nets AP Spent off Lifetime.
 const RECORDS = [
-  ['Discord ID', 'Player Name', 'Crusade AP', 'World Dungeon AP', 'Battle Field AP', 'Total AP'],
-  ['1', 'NC | Chielo', '390', '50', '0', '440'],
-  ['2', 'NC | J0bee', '130', '0', '0', '130'],
-  ['3', 'NC | Capped', '9000', '0', '0', '9000'],
+  ['Discord ID', 'Player Name', 'Crusade AP', 'World Dungeon AP', 'Battle Field AP',
+   'Total AP', 'AP Spent', 'Lifetime AP Earned'],
+  ['1', 'NC | Chielo', '390', '50', '0', '340', '100', '440'],
+  ['2', 'NC | J0bee', '130', '0', '0', '130', '0', '130'],
+  ['3', 'NC | Capped', '9000', '0', '0', '9000', '0', '9000'],
   // Two accounts, one display name. Both appear on the live sheet.
-  ['4', 'NC | Twin', '10', '0', '0', '10'],
-  ['5', 'NC | Twin', '20', '0', '0', '20'],
+  ['4', 'NC | Twin', '10', '0', '0', '10', '0', '10'],
+  ['5', 'NC | Twin', '20', '0', '0', '20', '0', '20'],
   // Chielo's per-event columns do not always come to its own total.
-  ['6', 'NC | Mismatch', '100', '0', '20', '202'],
+  ['6', 'NC | Mismatch', '100', '0', '20', '202', '0', '202'],
 ];
 const LEDGER = [
   ['date', 'member', 'item', 'qty', 'ap', 'note'],
@@ -135,8 +137,14 @@ const LEDGER = [
 ];
 const bal = n => readMembers(RECORDS, LEDGER).find(m => m.name === n);
 check('earning with no ledger rows leaves the balance untouched', bal('NC | J0bee').balance, 130);
-check('a purchase comes off the balance', bal('NC | Chielo').balance, 440 - 300 + 25);
-check('spent is reported as a positive number', bal('NC | Chielo').spent, 300);
+check('a purchase comes off the balance', bal('NC | Chielo').balance, 340 - 300 + 25);
+// What the bot charged plus what an officer took off by hand.
+check('spent counts the bot and the ledger together', bal('NC | Chielo').spent, 100 + 300);
+check('earned is lifetime, not the netted total', bal('NC | Chielo').earned, 440 + 25);
+check('earned minus spent is the balance',
+  bal('NC | Chielo').earned - bal('NC | Chielo').spent, bal('NC | Chielo').balance);
+check('a member the bot has charged shows it without any ledger row',
+  bal('NC | J0bee').spent, 0);
 check('a positive ledger row is a credit, not a spend', bal('NC | Chielo').adjusted, 25);
 check('the balance cap still applies', bal('NC | Capped').balance, RULES.balance_cap);
 check('earned is never silently capped', bal('NC | Capped').earned, 9000);

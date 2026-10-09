@@ -27,10 +27,19 @@ Google Sheet `10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0`, three tabs, all rea
 | --- | --- | --- |
 | `AP Records` | Chielo | Running AP per member, one column per event type |
 | `Event Logs` | Chielo | One row per closed check-in: time, result, base AP, win bonus, **participant count**, participants |
-| `AP_LEDGER` | officers, by hand | Deductions, voids and corrections |
+| `AP Transactions` | the bidding bot | Every purchase: who, what, AP charged, balance either side |
+| `AP_LEDGER` | officers, by hand | Voids and corrections only - the bot handles purchases |
 | `Bidding Item` | pasted from the loot post builder; the Discord bidding system fills in results | `Item`, `AP Price`, `Status`, `Winner`, `Winning Bid` |
 
-`balance = AP Records total + ledger credits − ledger debits`, capped at `balance_cap`.
+The bot keeps its own books on `AP Records`: `Lifetime AP Earned`, `AP Spent`, and a `Total AP` that already nets the two. So:
+
+```
+earned  = Lifetime AP Earned + ledger credits
+spent   = AP Spent + ledger debits
+balance = Total AP + ledger credits - ledger debits     (capped)
+```
+
+Reading `Total AP` as earnings made every purchase invisible: the balance was right but the Spent column read zero. `AP_LEDGER` is only for what the bot cannot know - voids and officer corrections.
 
 Debits and credits are summed **separately**. Netting them first makes a correction look like a discount on whatever someone bought, and the Spent column stops matching the ledger. `check.js` covers this.
 
