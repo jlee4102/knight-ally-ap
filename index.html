@@ -426,7 +426,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <summary>Where the numbers come from</summary>
     <div class="note">
       <p style="margin:0 0 10px"><strong>Earning is automatic.</strong> Chielo writes every closed check-in to the guild AP sheet — one row per event with its turnout, plus a running AP total per member. This page reads those tabs; nobody types a point in.</p>
-      <p style="margin:0 0 10px"><strong>Spending is not.</strong> An officer adds a row to <code>AP_LEDGER</code> when someone wins an item: <code>date</code>, <code>member</code>, <code>item</code>, <code>qty</code>, <code>ap</code>, <code>note</code>. <code>ap</code> is negative for a purchase or a void, positive for a correction. Balance is what Chielo credited minus what the ledger took away, capped at <span id="cap-ref">—</span>.</p>
+      <p style="margin:0 0 10px"><strong>Spending is automatic too.</strong> The Discord bidding system charges the winner and writes the purchase to <code>AP Transactions</code>, so nobody records a deduction by hand. Balance is what Chielo credited minus what the bot charged, capped at <span id="cap-ref">—</span>.</p>
       <p style="margin:0">Fixed-price items always cost their listed price, but an auction winner pays their own bid — so the <code>ap</code> column is what counts, and <code>item</code> links the row to the loot board for checking.</p>
     </div>
   </details>
@@ -477,13 +477,12 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
 
 <script>
 // The Chielo bot writes straight into this sheet: a row per event it closes, and a
-// running AP total per member. Officers add deductions to AP_LEDGER by hand.
+// running AP total per member, and charges purchases against it itself.
 const SHEET_ID = '10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0';
 
 // Small tabs, so address them by name — that survives anyone reordering the sheet.
 const TAB_RECORDS = 'AP Records';
 const TAB_EVENTS  = 'Event Logs';
-const TAB_LEDGER  = 'AP_LEDGER';
 const TAB_BIDDING  = 'Bidding Item';
 const TAB_SPEND    = 'AP Transactions';
 
@@ -1224,8 +1223,8 @@ function renderRoster(filter){
     if(m.spent) sp.style.color = 'var(--crimson)';
     tr.appendChild(sp);
     const td = el('td','num ap', fmt(m.balance));
-    if(m.earned + m.adjusted - m.spent > RULES.balance_cap)
-      td.title = fmt(m.earned - m.spent + m.adjusted) + ' AP, capped at ' + fmt(RULES.balance_cap);
+    if(m.earned - m.spent > RULES.balance_cap)
+      td.title = fmt(m.earned - m.spent) + ' AP, capped at ' + fmt(RULES.balance_cap);
     tr.appendChild(td);
     tb.appendChild(tr);
   });
@@ -1249,21 +1248,10 @@ function rowObjects(rows){
     .map(r => Object.fromEntries(head.map((h, i) => [h, (r[i] || '').trim()])));
 }
 
-// Chielo keeps a running AP total per member; officers record every deduction,
-// void and correction in AP_LEDGER. Balance is one minus the other, capped.
-function readMembers(recordRows, ledgerRows){
-  // Keep debits and credits apart. Netting them first makes a correction look like
-  // a discount on the thing someone bought, and "spent" stops matching the ledger.
-  const out = new Map(), inn = new Map(), count = new Map();
-  for(const r of rowObjects(ledgerRows)){
-    const who = r.member;
-    if(!who) continue;
-    const ap = toNum(r.ap);
-    if(ap < 0) out.set(who, (out.get(who) || 0) - ap);
-    else       inn.set(who, (inn.get(who) || 0) + ap);
-    count.set(who, (count.get(who) || 0) + 1);
-  }
-
+// The bot keeps its own books on AP Records: Lifetime AP Earned, AP Spent, and a
+// Total AP that already nets the two. Reading Total as "earned" once made every
+// purchase invisible - the balance was right and the Spent column said zero.
+function readMembers(recordRows){
   const head = recordRows.length ? recordRows[0].map(c => c.trim()) : [];
   const nameAt = headerIndex(head, 'Player Name');
   const idAt = headerIndex(head, 'Discord ID');
@@ -1283,23 +1271,12 @@ function readMembers(recordRows, ledgerRows){
     seen.add(key);
     const att = {};
     for(const c of cols) att[c.event] = c.i < 0 ? 0 : toNum(r[c.i]);
-    // Chielo's own Total AP is what it tells people in Discord, so that is the
-    // balance. Adding up the per-event columns would drop any column the bot adds
-    // later, and on the live sheet they do not always come to the total anyway.
-    // The bot keeps its own books: Lifetime AP Earned, AP Spent, and a Total AP
-    // that already nets the two. Reading Total as "earned" made every purchase
-    // invisible - the balance was right, the Spent column said zero. AP_LEDGER is
-    // only for what the bot cannot know: voids and officer corrections.
-    const total = totalAt < 0 ? Object.values(att).reduce((a, b) => a + b, 0) : toNum(r[totalAt]);
-    const lifetime = lifeAt < 0 ? total : toNum(r[lifeAt]);
-    const botSpent = spentAt < 0 ? 0 : toNum(r[spentAt]);
-    const byHand = out.get(name) || 0, adjusted = inn.get(name) || 0;
+    const total = totalAt < 0 ? Object.values(att).reduce((x, y) => x + y, 0) : toNum(r[totalAt]);
     return {
-      key, name, att, adjusted,
-      earned: lifetime + adjusted,
-      spent: botSpent + byHand,
-      entries: count.get(name) || 0,
-      balance: Math.min(total + adjusted - byHand, RULES.balance_cap),
+      key, name, att,
+      earned: lifeAt < 0 ? total : toNum(r[lifeAt]),
+      spent: spentAt < 0 ? 0 : toNum(r[spentAt]),
+      balance: Math.min(total, RULES.balance_cap),
     };
   }).filter(Boolean);
 }
@@ -1380,16 +1357,16 @@ async function loadRoster(){
     catch(e){ return []; }
   };
   try{
-    const [records, ledger, events, bidding, spend] = await Promise.all(
-      [TAB_RECORDS, TAB_LEDGER, TAB_EVENTS, TAB_BIDDING, TAB_SPEND].map(grab));
+    const [records, events, bidding, spend] = await Promise.all(
+      [TAB_RECORDS, TAB_EVENTS, TAB_BIDDING, TAB_SPEND].map(grab));
 
-    ROSTER = readMembers(records, ledger);
+    ROSTER = readMembers(records);
     ROSTER.sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
     EVENTS = readEvents(events);
 
-    const spent = ROSTER.reduce((n, m) => n + m.entries, 0);
+    const buyers = ROSTER.filter(m => m.spent > 0).length;
     sub.textContent = `${ROSTER.length} members, ${EVENTS.length} events logged by Chielo`
-      + (spent ? `, ${spent} ledger entries applied.` : '. No deductions recorded yet.');
+      + (buyers ? `, ${buyers} ${buyers === 1 ? 'has' : 'have'} spent AP.` : '. Nothing spent yet.');
 
     LISTINGS = readBidding(bidding);
     SPEND = readSpend(spend);

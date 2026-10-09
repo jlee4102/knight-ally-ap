@@ -130,26 +130,18 @@ const RECORDS = [
   // Chielo's per-event columns do not always come to its own total.
   ['6', 'NC | Mismatch', '100', '0', '20', '202', '0', '202'],
 ];
-const LEDGER = [
-  ['date', 'member', 'item', 'qty', 'ap', 'note'],
-  ['2026-10-12', 'NC | Chielo', 'aura-stones', '1', '-300', 'won auction'],
-  ['2026-10-13', 'NC | Chielo', '', '', '25', 'logger missed Crusade'],
-];
-const bal = n => readMembers(RECORDS, LEDGER).find(m => m.name === n);
-check('earning with no ledger rows leaves the balance untouched', bal('NC | J0bee').balance, 130);
-check('a purchase comes off the balance', bal('NC | Chielo').balance, 340 - 300 + 25);
-// What the bot charged plus what an officer took off by hand.
-check('spent counts the bot and the ledger together', bal('NC | Chielo').spent, 100 + 300);
-check('earned is lifetime, not the netted total', bal('NC | Chielo').earned, 440 + 25);
+const bal = n => readMembers(RECORDS).find(m => m.name === n);
+check('a member who has bought nothing keeps all of it', bal('NC | J0bee').balance, 130);
+check('what the bot charged comes off the balance', bal('NC | Chielo').balance, 340);
+check('spent is what the bot charged', bal('NC | Chielo').spent, 100);
+// Total AP already nets the two, so reading it as earnings hides every purchase.
+check('earned is lifetime, not the netted total', bal('NC | Chielo').earned, 440);
 check('earned minus spent is the balance',
   bal('NC | Chielo').earned - bal('NC | Chielo').spent, bal('NC | Chielo').balance);
-check('a member the bot has charged shows it without any ledger row',
-  bal('NC | J0bee').spent, 0);
-check('a positive ledger row is a credit, not a spend', bal('NC | Chielo').adjusted, 25);
 check('the balance cap still applies', bal('NC | Capped').balance, RULES.balance_cap);
 check('earned is never silently capped', bal('NC | Capped').earned, 9000);
 check('two accounts sharing a display name both survive',
-  readMembers(RECORDS, LEDGER).filter(m => m.name === 'NC | Twin').length, 2);
+  readMembers(RECORDS).filter(m => m.name === 'NC | Twin').length, 2);
 check('the running total the bot keeps wins over adding the columns up',
   bal('NC | Mismatch').earned, 202);
 check('a column the bot added is still shown in the breakdown',

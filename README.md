@@ -28,26 +28,21 @@ Google Sheet `10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0`, three tabs, all rea
 | `AP Records` | Chielo | Running AP per member, one column per event type |
 | `Event Logs` | Chielo | One row per closed check-in: time, result, base AP, win bonus, **participant count**, participants |
 | `AP Transactions` | the bidding bot | Every purchase: who, what, AP charged, balance either side |
-| `AP_LEDGER` | officers, by hand | Voids and corrections only - the bot handles purchases |
 | `Bidding Item` | pasted from the loot post builder; the Discord bidding system fills in results | `Item`, `AP Price`, `Status`, `Winner`, `Winning Bid` |
 
 The bot keeps its own books on `AP Records`: `Lifetime AP Earned`, `AP Spent`, and a `Total AP` that already nets the two. So:
 
 ```
-earned  = Lifetime AP Earned + ledger credits
-spent   = AP Spent + ledger debits
-balance = Total AP + ledger credits - ledger debits     (capped)
+earned  = Lifetime AP Earned
+spent   = AP Spent
+balance = Total AP                 (capped at balance_cap)
 ```
 
-Reading `Total AP` as earnings made every purchase invisible: the balance was right but the Spent column read zero. `AP_LEDGER` is only for what the bot cannot know - voids and officer corrections.
+Reading `Total AP` as earnings made every purchase invisible: the balance was right but the Spent column read zero.
+
+Nothing is recorded by hand. A correction is an edit to `AP Records` itself.
 
 Debits and credits are summed **separately**. Netting them first makes a correction look like a discount on whatever someone bought, and the Spent column stops matching the ledger. `check.js` covers this.
-
-### AP_LEDGER
-
-`date | member | item | qty | ap | note` — `ap` is signed, negative for a purchase or a void. `member` must match `Player Name` on `AP Records` exactly. `item` is an item's `channel` key from `ap_rules.json`, blank for a void.
-
-Auction winners pay their own bid, which no rules file can know, so `ap` is authoritative and `item` is only the link back to the loot board.
 
 ### Bidding Item
 
