@@ -183,11 +183,10 @@ check('two accounts sharing a display name both survive',
   readMembers(RECORDS).filter(m => m.name === 'NC | Twin').length, 2);
 check('the running total the bot keeps wins over adding the columns up',
   bal('NC | Mismatch').earned, 202);
-check('a lifetime that lags is reported, not adopted', bal('NC | Adrift').adrift, 50);
-check('the balance is unaffected by the lag', bal('NC | Adrift').balance, 150);
-check('earned still equals balance plus spent when lifetime lags',
-  bal('NC | Adrift').earned, 250);
-check('a lifetime that agrees raises nothing', bal('NC | Chielo').adrift, 0);
+// Lifetime AP Earned is not read at all: the bot has let it fall behind its own
+// Total, and a derived figure cannot disagree with the balance on screen.
+check('a lagging Lifetime is ignored, not adopted', bal('NC | Adrift').earned, 250);
+check('the balance is unaffected by it', bal('NC | Adrift').balance, 150);
 check('a column the bot added is still shown in the breakdown',
   bal('NC | Mismatch').att.battlefield_elite, 20);
 
