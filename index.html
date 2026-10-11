@@ -1391,10 +1391,15 @@ function readMembers(recordRows){
     const att = {};
     for(const c of cols) att[c.event] = c.i < 0 ? 0 : toNum(r[c.i]);
     const total = totalAt < 0 ? Object.values(att).reduce((x, y) => x + y, 0) : toNum(r[totalAt]);
+    const spent = spentAt < 0 ? 0 : toNum(r[spentAt]);
+    // Earned is derived, not read. Lifetime AP Earned has gone out of step with
+    // the bot's own Total more than once - seven members sat 50 AP short of it -
+    // and three numbers that disagree on screen is worse than two that cannot.
+    const earned = total + spent;
+    const lifetime = lifeAt < 0 ? earned : toNum(r[lifeAt]);
     return {
-      key, name, att,
-      earned: lifeAt < 0 ? total : toNum(r[lifeAt]),
-      spent: spentAt < 0 ? 0 : toNum(r[spentAt]),
+      key, name, att, earned, spent, lifetime,
+      adrift: Math.abs(lifetime - earned) > 0.01 ? earned - lifetime : 0,
       balance: Math.min(total, RULES.balance_cap),
     };
   }).filter(Boolean);
@@ -1486,6 +1491,8 @@ async function loadRoster(){
     ROSTER.sort((a, b) => b.balance - a.balance || a.name.localeCompare(b.name));
     EVENTS = readEvents(events);
 
+    const adrift = ROSTER.filter(m => m.adrift);
+    if(adrift.length) driftWarning(adrift);
     const buyers = ROSTER.filter(m => m.spent > 0).length;
     sub.textContent = `${ROSTER.length} members, ${EVENTS.length} events logged by Chielo`
       + (buyers ? `, ${buyers} ${buyers === 1 ? 'has' : 'have'} spent AP.` : '. Nothing spent yet.');
@@ -1788,6 +1795,19 @@ function buildEvents(){
     tb.appendChild(tr);
   }
   labelCells('#events-table');
+}
+
+// The bot keeps Lifetime AP Earned alongside its Total and AP Spent. When they
+// disagree the balance is still right - it comes from Total - but somebody's
+// earnings are being under-reported, and that is worth saying out loud.
+function driftWarning(list){
+  const w = el('div','warn');
+  w.appendChild(el('b','Chielo’s own figures disagree'));
+  w.appendChild(el('span', null,
+    `${list.length} member${list.length === 1 ? "'s" : "s'"} Lifetime AP Earned does not match their Total plus AP Spent`
+    + ` (${list.slice(0, 4).map(m => m.name + ' ' + (m.adrift > 0 ? '+' : '') + fmt(m.adrift)).join(', ')}`
+    + `${list.length > 4 ? ', and others' : ''}). Balances are unaffected, but those members have earned more than the bot is crediting them with.`));
+  document.getElementById('drift').appendChild(w);
 }
 
 // If most of the guild blows past the cap, the AP rates don't match how

@@ -164,13 +164,17 @@ const RECORDS = [
   ['5', 'NC | Twin', '20', '0', '0', '20', '0', '20'],
   // Chielo's per-event columns do not always come to its own total.
   ['6', 'NC | Mismatch', '100', '0', '20', '202', '0', '202'],
+  // Lifetime 50 short of Total plus Spent, as seven real members were.
+  ['7', 'NC | Adrift', '0', '0', '0', '150', '100', '200'],
 ];
 const bal = n => readMembers(RECORDS).find(m => m.name === n);
 check('a member who has bought nothing keeps all of it', bal('NC | J0bee').balance, 130);
 check('what the bot charged comes off the balance', bal('NC | Chielo').balance, 340);
 check('spent is what the bot charged', bal('NC | Chielo').spent, 100);
 // Total AP already nets the two, so reading it as earnings hides every purchase.
-check('earned is lifetime, not the netted total', bal('NC | Chielo').earned, 440);
+// Earned is derived from the two figures the bot keeps straight, not read from
+// Lifetime, which it has let drift. These three can then never disagree on screen.
+check('earned is the balance plus what was spent', bal('NC | Chielo').earned, 340 + 100);
 check('earned minus spent is the balance',
   bal('NC | Chielo').earned - bal('NC | Chielo').spent, bal('NC | Chielo').balance);
 check('the balance cap still applies', bal('NC | Capped').balance, RULES.balance_cap);
@@ -179,6 +183,11 @@ check('two accounts sharing a display name both survive',
   readMembers(RECORDS).filter(m => m.name === 'NC | Twin').length, 2);
 check('the running total the bot keeps wins over adding the columns up',
   bal('NC | Mismatch').earned, 202);
+check('a lifetime that lags is reported, not adopted', bal('NC | Adrift').adrift, 50);
+check('the balance is unaffected by the lag', bal('NC | Adrift').balance, 150);
+check('earned still equals balance plus spent when lifetime lags',
+  bal('NC | Adrift').earned, 250);
+check('a lifetime that agrees raises nothing', bal('NC | Chielo').adrift, 0);
 check('a column the bot added is still shown in the breakdown',
   bal('NC | Mismatch').att.battlefield_elite, 20);
 
