@@ -213,6 +213,8 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .give .nm small{display:block; color:var(--faint); font-family:var(--mono); font-size:10.5px}
   .give.ok .nm{text-decoration:line-through; color:var(--faint)}
   .give.ok .nm small{text-decoration:none}
+  #hand-rows{background:var(--raise); color:var(--text); border:1px solid var(--line);
+    font-family:var(--mono); font-size:13px; padding:8px 10px; width:170px}
 
   /* loot post builder */
   .builder{border:1px solid var(--line); background:var(--surface)}
@@ -455,6 +457,12 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   <section id="hand-out" data-panel="post">
     <h2>To hand out</h2>
     <p class="sub" id="hand-sub">Loading…</p>
+    <div class="out-bar" style="margin:0 0 14px">
+      <label for="hand-rows" class="olbl" style="margin:0">Mark rows done</label>
+      <input type="text" id="hand-rows" placeholder="e.g. 40-55, 61, 63" aria-label="Sheet rows to mark as handed out">
+      <button type="button" class="btn go" id="hand-mark">Mark</button>
+      <button type="button" class="btn" id="hand-unmark">Un-mark</button>
+    </div>
     <div class="out-bar" style="margin:0 0 18px">
       <button type="button" class="btn" id="copy-handout">Copy the list for Discord</button>
       <button type="button" class="btn" id="reset-handout">Clear the ticks</button>
@@ -1200,6 +1208,21 @@ function wireBuilder(){
     }
   };
 
+  const mark = done => () => {
+    const input = document.getElementById('hand-rows');
+    const {matched, missing} = markRows(input.value, done);
+    const note = document.getElementById('hand-note');
+    if(!matched && !missing.length){ note.textContent = 'Type some row numbers first.'; return; }
+    note.textContent = matched + (matched === 1 ? ' row ' : ' rows ') + (done ? 'marked done' : 'un-marked')
+      + (missing.length ? '. No winner on ' + (missing.length > 6 ? missing.length + ' of them' : 'row ' + missing.join(', ')) + '.' : '.');
+    if(matched) input.value = '';
+  };
+  document.getElementById('hand-mark').onclick = mark(true);
+  document.getElementById('hand-unmark').onclick = mark(false);
+  document.getElementById('hand-rows').addEventListener('keydown', e => {
+    if(e.key === 'Enter'){ e.preventDefault(); mark(true)(); }
+  });
+
   document.getElementById('copy-handout').onclick =
     copier('hand-list', 'hand-note', handoutText, 'Copied. Paste it into Discord.');
   document.getElementById('reset-handout').onclick = () => {
@@ -1396,7 +1419,9 @@ function readSpend(rows){
 // the rules, so an unrecognised one is normal and not flagged; a name that does
 // match is still checked against its minimum.
 function readBidding(rows){
-  return rowObjects(rows).filter(r => r.Item).map(r => {
+  // Keep the spreadsheet's own row number: header is row 1, so the first entry is
+  // row 2. It is what an officer sees in the sheet and can point at.
+  return rowObjects(rows).map((r, i) => ({...r, _row: i + 2})).filter(r => r.Item).map(r => {
     // A stack is written into the name, since the tab has no quantity column.
     const m = r.Item.match(/^(.*?)\s*[x\u00d7]\s*(\d{1,3})\s*$/i);
     const label = (m ? m[1] : r.Item).trim();
@@ -1414,6 +1439,7 @@ function readBidding(rows){
     if(r.Winner && !paid) flags.push('winner recorded with no winning bid');
 
     return {
+      row: r._row,
       name: known ? known.name : label,
       unit: '', qty, method: 'auction',
       price, paid, flags,
@@ -1552,6 +1578,37 @@ const saveGiven = set => { try{ localStorage.setItem(GIVEN_KEY, JSON.stringify([
 
 // Grouped by winner rather than by item: in game you pick a person and then hand
 // them things, so going item by item means finding the same name over and over.
+// "40-55, 61, 63" and the like. Anything that is not a number is ignored rather
+// than rejected, so a stray comma or the word "rows" does no harm.
+function parseRows(text){
+  const out = new Set();
+  for(const part of String(text || '').split(/[,;]+/)){
+    const m = part.match(/(\d+)\s*(?:[-\u2013to]+\s*(\d+))?/i);
+    if(!m) continue;
+    const a = Number(m[1]), b = m[2] ? Number(m[2]) : a;
+    for(let n = Math.min(a, b); n <= Math.max(a, b); n++) out.add(n);
+  }
+  return out;
+}
+
+function markRows(text, done){
+  const wanted = parseRows(text);
+  if(!wanted.size) return {matched: 0, missing: []};
+  const given = givenSet();
+  const byRow = new Map(LISTINGS.filter(l => l.winner && !l.open).map(l => [l.row, l]));
+  let matched = 0;
+  const missing = [];
+  for(const n of [...wanted].sort((a, b) => a - b)){
+    const l = byRow.get(n);
+    if(!l){ missing.push(n); continue; }
+    done ? given.add(handKey(l)) : given.delete(handKey(l));
+    matched++;
+  }
+  saveGiven(given);
+  buildHandout();
+  return {matched, missing};
+}
+
 function buildHandout(){
   const box = document.getElementById('hand-list');
   const sub = document.getElementById('hand-sub');
@@ -1589,6 +1646,7 @@ function buildHandout(){
     h.appendChild(el('small', null, outstanding ? outstanding + ' to give' : 'all done'));
     card.appendChild(h);
 
+    items.sort((a, b) => a.row - b.row);
     for(const l of items){
       const key = handKey(l);
       const row = el('label', 'give' + (given.has(key) ? ' ok' : ''));
@@ -1603,7 +1661,7 @@ function buildHandout(){
       });
       const nm = el('div', 'nm');
       nm.appendChild(document.createTextNode(l.name + (l.qty > 1 ? ' \u00d7' + l.qty : '')));
-      nm.appendChild(el('small', null, fmt(l.paid || l.price) + ' AP'));
+      nm.appendChild(el('small', null, 'row ' + l.row + ' \u00b7 ' + fmt(l.paid || l.price) + ' AP'));
       row.append(cb, nm);
       card.appendChild(row);
     }
@@ -1611,9 +1669,9 @@ function buildHandout(){
   }
 }
 
-// Enough to tell two rows apart without depending on the sheet's row order, which
-// shifts as things are added.
-const handKey = l => [l.winner, l.name, l.qty, l.paid].join('|');
+// The sheet's row number, plus the item name so a tick cannot survive onto a
+// different item if rows are ever inserted above it.
+const handKey = l => l.row + '|' + l.name;
 
 function handoutText(){
   const given = givenSet();

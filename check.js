@@ -225,6 +225,23 @@ check('a plain name with no count is a quantity of one',
 check('an explicit qty column wins over the count in the name',
   bid({Item: 'Skill book ×9', qty: '1', 'AP Price': '150', Status: 'Available'}).qty, 1);
 
+console.log('\nMarking rows handed out');
+eval(grab('function parseRows', '\nfunction markRows'));
+const R = t => [...parseRows(t)].sort((a, b) => a - b);
+check('a plain range', R('40-44'), [40, 41, 42, 43, 44]);
+check('a single row', R('61'), [61]);
+check('a mix of ranges and singles', R('40-42, 61, 63'), [40, 41, 42, 61, 63]);
+check('spaces and the word to', R('40 to 42'), [40, 41, 42]);
+check('a backwards range still reads forwards', R('44-40'), [40, 41, 42, 43, 44]);
+check('an en dash works like a hyphen', R('40–42'), [40, 41, 42]);
+check('stray words and punctuation are ignored', R('rows 40-41,, and 55'), [40, 41, 55]);
+check('nothing numeric gives nothing', R('hello'), []);
+check('a row listed twice is still one row', R('40-42, 41'), [40, 41, 42]);
+// The sheet's header is row 1, so the first listing is row 2. Off by one here
+// would mark the wrong item as handed out.
+check('the first data row is row 2',
+  readBidding([BID_HEAD, BID_HEAD.map(h => h === 'Item' ? 'Skill book' : '')])[0].row, 2);
+
 console.log('\nRows the builder writes');
 // The newline matters: the grabbed block ends on a comment line, so a return
 // appended directly to it would be commented out and the function returns nothing.
