@@ -1679,16 +1679,18 @@ function buildHandout(){
     h.appendChild(el('small', null, outstanding ? outstanding + ' to give' : 'all done'));
     card.appendChild(h);
 
-    items.sort((a, b) => a.row - b.row);
-    for(const l of items){
-      const key = handKey(l);
-      const row = el('label', 'give' + (given.has(key) ? ' ok' : ''));
+    // Twelve separate blessing-stone wins is one handful of stones in game, so the
+    // same item shows once with the total. The rows behind it are kept, because
+    // they are what the ticks and the row box work on.
+    for(const g of lump(items)){
+      const row = el('label', 'give' + (g.done ? ' ok' : ''));
       const cb = document.createElement('input');
       cb.type = 'checkbox';
-      cb.checked = given.has(key);
+      cb.checked = g.done;
+      cb.indeterminate = !g.done && g.items.some(l => given.has(handKey(l)));
       cb.addEventListener('change', () => {
         const now = givenSet();
-        cb.checked ? now.add(key) : now.delete(key);
+        for(const l of g.items) cb.checked ? now.add(handKey(l)) : now.delete(handKey(l));
         saveGiven(now);
         buildHandout();
       });
