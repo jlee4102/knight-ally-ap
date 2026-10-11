@@ -90,6 +90,11 @@ check('unrelated UI text is ignored', hit('Guild Storage  12/100'), null);
 check('empty line is ignored', hit(''), null);
 check('a near-miss between two similar items is refused rather than guessed',
   hit('Arcane Scroll'), null);
+// Both chest aliases open "…Enhancement Scroll Selection Chest". The three
+// enhancement scrolls have no price yet and must not be dragged in with them.
+check('the unpriced enhancement scrolls are still refused',
+  ['Brilliant Armor Enhancement Scroll', 'Brilliant Accessory Enhancement Scroll',
+   'Brilliant Weapon Enhancement Scroll'].filter(n => hit(n) !== null), []);
 // Real storage rows. The rarity column is the trap: this line contains every word
 // of "Superior Arcane Scroll", but the name that is actually written is Higher.
 check('the rarity column does not steal the match',
@@ -122,6 +127,8 @@ check('the in-game names on the sheet all reach their item', (() => {
     'Superior Arcane Scroll of Discipline': 'Superior Arcane Scroll',
     'Skill Book - Piercing Arrow I': 'Skill book',
     'Crystal of Liberation (Bound)': 'Crystal of Liberation (Potential)',
+    'Pitch-black Enhancement Scroll Selection Chest II (Bound)': 'Brilliant Pitchblack chest',
+    'Brilliant Enhancement Scroll Selection Chest II (Bound)': 'Brilliant Pitchblack chest',
   };
   return Object.entries(want).filter(([line, item]) => hit(line) !== item).map(([line]) => line);
 })(), []);

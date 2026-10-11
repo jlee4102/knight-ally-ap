@@ -109,7 +109,7 @@
     { "channel": "legend-cape", "name": "Golden Insignia fragments (cape)", "aliases": ["Golden Cape Insignia Fragment"], "method": "auction_batch", "min_per_unit": 5, "bid_step": 5, "unit": "per fragment" },
     { "channel": "legend-gloves", "name": "Golden Insignia fragments (gloves)", "aliases": ["Golden Gloves Insignia Fragment"], "method": "auction_batch", "min_per_unit": 5, "bid_step": 5, "unit": "per fragment" },
     { "channel": "legend-scrolls", "name": "Legendary scroll (Arcane Scroll Selection Chest)", "aliases": ["[L] Arcane Scroll Selection Chest"], "method": "auction", "min_bid": 25, "bid_step": 25 },
-    { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Pitchblack chest", "method": "fixed", "price": 75, "unit": "per chest" },
+    { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Pitchblack chest", "aliases": ["Pitch-black Enhancement Scroll Selection Chest", "Brilliant Enhancement Scroll Selection Chest"], "method": "fixed", "price": 75, "unit": "per chest" },
     { "channel": "t3-crafting-material", "name": "T3 crafting material", "method": "auction", "min_bid": 75, "bid_step": 25 },
     { "channel": "aura-stones", "name": "Aura stone (red or green only)", "method": "auction", "min_bid": 175, "bid_step": 25, "max_qty": 1 },
     { "channel": "source-of-wisdom", "name": "Source of Wisdom", "method": "fixed", "price": 110 },
