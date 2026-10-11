@@ -1747,10 +1747,16 @@ function buildSpend(){
     return;
   }
 
-  const total = SPEND.reduce((n, t) => n + t.ap, 0);
-  const mine = ME ? SPEND.filter(t => t.name === ME.name) : [];
-  sub.textContent = `${SPEND.length} purchase${SPEND.length === 1 ? '' : 's'}, ${fmt(total)} AP spent in total`
-    + (ME && mine.length ? `. ${mine.length} of them yours, ${fmt(mine.reduce((n, t) => n + t.ap, 0))} AP.` : '.');
+  // Only a completed charge counts. Anything else — a test purchase retired by
+  // changing its status, a failure — is still listed so it is not lost, but it
+  // stays out of everybody's total.
+  const real = SPEND.filter(t => t.status === 'COMPLETE');
+  const setAside = SPEND.length - real.length;
+  const total = real.reduce((n, t) => n + t.ap, 0);
+  const mine = ME ? real.filter(t => t.name === ME.name) : [];
+  sub.textContent = `${real.length} purchase${real.length === 1 ? '' : 's'}, ${fmt(total)} AP spent in total`
+    + (ME && mine.length ? `. ${mine.length} of them yours, ${fmt(mine.reduce((n, t) => n + t.ap, 0))} AP.` : '.')
+    + (setAside ? ` ${setAside} row${setAside === 1 ? '' : 's'} not marked COMPLETE, left out of the totals.` : '');
 
   for(const t of SPEND.slice(0, 30)){
     const tr = el('tr');
@@ -1762,8 +1768,9 @@ function buildSpend(){
     what.appendChild(el('span','ev-note', t.method));
     tr.appendChild(what);
     const ap = el('td','num ap', '\u2212' + fmt(t.ap));
-    ap.style.color = 'var(--crimson)';
+    ap.style.color = t.status === 'COMPLETE' ? 'var(--crimson)' : 'var(--faint)';
     tr.appendChild(ap);
+    if(t.status !== 'COMPLETE') tr.style.opacity = '.55';
     const left = el('td','num', fmt(t.after));
     if(t.status && t.status !== 'COMPLETE') left.appendChild(el('span','flag', t.status));
     tr.appendChild(left);

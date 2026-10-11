@@ -27,7 +27,7 @@ Google Sheet `10o-BS30FIw-XVm84GAPlpmDBgadIphIwg2-lYuH3tu0`, three tabs, all rea
 | --- | --- | --- |
 | `AP Records` | Chielo | Running AP per member, one column per event type |
 | `Event Logs` | Chielo | One row per closed check-in: time, result, base AP, win bonus, **participant count**, participants |
-| `AP Transactions` | the bidding bot | Every purchase: who, what, AP charged, balance either side |
+| `AP Transactions` | the bidding bot | Every purchase: who, what, AP charged, balance either side. Only `COMPLETE` rows count; change the status to retire a test purchase without deleting it. |
 | `Bidding Item` | pasted from the loot post builder; the Discord bidding system fills in results | `Item`, `AP Price`, `Status`, `Winner`, `Winning Bid` |
 
 The bot keeps its own books on `AP Records`: `Lifetime AP Earned`, `AP Spent`, and a `Total AP` that already nets the two. So:
