@@ -62,6 +62,10 @@ A stack also goes into the name as `Skill book x3`, because the name is what Dis
 
 The image is scaled to about 2600px wide with the contrast stretched before the text pass. At its own size the reader returns things like `rian Bresing sene` and matches almost nothing; scaled up it reads every row.
 
+Every row is accounted for: priced, recognised as the guild leader's (from `not_for_sale_guild_leader_only`), or listed back as unrecognised. A row with no price in the rules used to vanish without trace, which is how a screenshot of 29 things quietly became 8.
+
+The game prints longer names than the guild prices under - `Orb of Winds` for glider material, `Golden Cuirass Insignia Fragment` for the chest fragments. Those go in an item's `aliases`, which are matched **intact only**: scored loosely, an alias whose distinctive words are all stop-words collapses to something like "arcane scroll" and swallows every other scroll.
+
 It does **not** read stack sizes. The quantity is painted on the item icon as a handful of pixels, and reading it was wrong more often than right - a 2 came back as 51, a stray mark in the artwork as 7. It also rested on crop fractions and a contrast threshold measured from two screenshots, which another officer's screen would not match. Every row starts at one and the officer types the counts.
 
 ### Known gaps

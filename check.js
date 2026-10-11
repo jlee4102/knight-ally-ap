@@ -106,11 +106,39 @@ check('an item with no rules entry is refused rather than priced as something el
   hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1 - Main Round'), null);
 // The aliases mechanism stays and is exercised here, so the next in-game name that
 // does not match a short name is one line of config rather than a code change.
+// Aliases are exact in-game names, matched intact. Scored loosely, one whose
+// distinctive words are all stop-words would swallow every similar item.
+check('an alias does not drag in a shorter name that merely overlaps it',
+  [hit('Arcane Scroll'), hit('[L] Arcane Scroll Selection Chest (Bound)')],
+  [null, 'Legendary scroll (Arcane Scroll Selection Chest)']);
+check('the in-game names on the sheet all reach their item', (() => {
+  const want = {
+    'Orb of Winds (Bound)': 'Glider material (Orbs of Winds)',
+    'Golden Cuirass Insignia Fragment (Bound)': 'Golden Insignia fragments (chest)',
+    'Golden Cape Insignia Fragment': 'Golden Insignia fragments (cape)',
+    'Golden Gloves Insignia Fragment (Bound)': 'Golden Insignia fragments (gloves)',
+    '[L] Arcane Scroll Selection Chest (Bound)': 'Legendary scroll (Arcane Scroll Selection Chest)',
+    'Higher Arcane Scroll of Wisdom (Bound)': 'Higher Arcane Scroll',
+    'Superior Arcane Scroll of Discipline': 'Superior Arcane Scroll',
+    'Skill Book - Piercing Arrow I': 'Skill book',
+    'Crystal of Liberation (Bound)': 'Crystal of Liberation (Potential)',
+  };
+  return Object.entries(want).filter(([line, item]) => hit(line) !== item).map(([line]) => line);
+})(), []);
+// Loot the rules reserve for the guild leader is recognised, not left unexplained.
+// notForSale came in with the matcher's eval above, so it is already defined.
+check('the leader’s loot is spotted', notForSale('Morion (Bound)   750'), 'Morion');
+check('guild coin too', notForSale('Guild Coin   30K'), 'Guild coin');
+check('a golden fragment is not mistaken for gold',
+  notForSale('Golden Cape Insignia Fragment') || 'not held', 'not held');
+
 check('an alias reaches the item it belongs to', (() => {
+  // Set and put back exactly as it was: deleting the key would wipe a real alias.
   const gear = RULES.items.find(i => i.channel === 'gear-mats-apply');
+  const had = gear.aliases;
   gear.aliases = ['Gear Crafting Material Selection Chest'];
   const got = hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1');
-  delete gear.aliases;
+  if(had) gear.aliases = had; else delete gear.aliases;
   return got;
 })(), 'Gear material');
 

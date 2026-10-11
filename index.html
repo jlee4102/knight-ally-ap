@@ -211,6 +211,12 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .btn.go{background:var(--gold-soft); border-color:var(--gold-soft); color:#15120a; font-weight:600}
   .ocr-note{font-family:var(--mono); font-size:11.5px; color:var(--faint); flex-basis:100%}
   .ocr-note.live{color:var(--gold)}
+  .unknown{flex-basis:100%; border-left:2px solid var(--crimson); padding-left:14px}
+  .unknown .rowhint{margin:0 0 6px}
+  .unknown-list{margin:0; padding-left:18px; columns:2; column-gap:24px}
+  .unknown-list li{font-size:12.5px; color:var(--text); line-height:1.5; break-inside:avoid}
+  @media (max-width:620px){ .unknown-list{columns:1} }
+
   .picks{display:grid; grid-template-columns:repeat(auto-fill,minmax(250px,1fr)); gap:1px; background:var(--line)}
   .pick{background:var(--surface); padding:11px 14px; display:flex; gap:11px; align-items:center}
   .pick.on{background:var(--raise)}
@@ -441,6 +447,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
         <input type="file" id="shot" accept="image/*" hidden>
         <button type="button" class="btn" id="shot-btn">Read a screenshot</button>
         <span class="ocr-note" id="ocr-note" hidden></span>
+        <div class="unknown" id="unknown" hidden></div>
       </div>
       <div class="picks" id="picks"></div>
       <div class="lots-wrap">
@@ -909,6 +916,15 @@ const STOP = new Set(['of','the','per','and','chest','selection']);
 // OCR of a game screenshot is never clean, but it does not have to be: the only
 // candidates are the items in the rules file. Score each line against each item by
 // how many of the item's distinctive words survived, and take a clear winner only.
+// Loot the rules say is the guild leader's and never goes in a post. Recognising
+// it means a screenshot can say "skipped, not for sale" instead of leaving it in
+// the unrecognised pile for an officer to puzzle over.
+function notForSale(line){
+  const words = new Set(norm(line).split(' '));
+  return (RULES.not_for_sale_guild_leader_only || []).find(entry =>
+    norm(entry).split(' ').filter(Boolean).every(w => words.has(w)));
+}
+
 function matchItem(line){
   const flat = norm(line);
   const words = new Set(flat.split(' ').filter(w => w.length > 2));
@@ -935,10 +951,13 @@ function matchItem(line){
   }
   let best = null, bestScore = 0, runnerUp = 0;
   RULES.items.forEach((it, i) => {
-    const score = Math.max(...[it.name, ...(it.aliases || [])].map(n => {
-      const key = norm(n).split(' ').filter(w => w.length > 2 && !STOP.has(w));
-      return key.length ? key.filter(w => words.has(w)).length / key.length : 0;
-    }));
+    // Names only here, not aliases. An alias is an exact in-game name and is
+    // matched intact above; scored loosely, one whose distinctive words are all
+    // stop-words ("[L] Arcane Scroll Selection Chest") collapses to "arcane
+    // scroll" and swallows every other scroll in the list.
+    const key = norm(it.name).split(' ').filter(w => w.length > 2 && !STOP.has(w));
+    if(!key.length) return;
+    const score = key.filter(w => words.has(w)).length / key.length;
     if(score > bestScore){ runnerUp = bestScore; bestScore = score; best = i; }
     else if(score > runnerUp) runnerUp = score;
   });
@@ -1014,8 +1033,18 @@ async function readScreenshot(file){
       ? lines.map(l => ({text: l.text || '', bbox: l.bbox}))
       : (res.data.text || '').split('\n').map(t => ({text: t, bbox: null}));
 
-    const matched = rows.map(r => ({...r, m: matchItem(r.text)})).filter(r => r.m);
-    if(!matched.length){ show('Nothing recognised \u2014 tick the items by hand.'); return; }
+    // A row the rules have no price for used to vanish without trace, which is why
+    // a screenshot of 29 things could quietly become 8. Every row is accounted for
+    // now: priced, known to be the leader's, or named back as unrecognised.
+    const seen = rows.map(r => ({...r, m: matchItem(r.text), skip: notForSale(r.text)}));
+    const matched = seen.filter(r => r.m);
+    const held = [...new Set(seen.filter(r => !r.m && r.skip).map(r => r.skip))];
+    const unknown = [...new Set(seen.filter(r => !r.m && !r.skip).map(r => itemish(r.text)).filter(Boolean))];
+    reportUnknown(unknown, held);
+    if(!matched.length){
+      show('Nothing priced here \u2014 tick the items by hand.');
+      return;
+    }
 
     // The stack size is painted on the icon as a handful of pixels, and reading it
     // was wrong more often than right: a 2 came back as 51, a stray mark in the
@@ -1032,12 +1061,44 @@ async function readScreenshot(file){
 
     show(matched.length + (matched.length === 1 ? ' stack' : ' stacks') + ' of ' + kinds.size
       + (kinds.size === 1 ? ' item' : ' items')
+      + (unknown.length ? ', ' + unknown.length + ' not recognised' : '')
+      + (held.length ? ', ' + held.length + " the leader's" : '')
       + ' \u2014 now set the quantities from the screenshot.');
   }catch(err){
     show('Could not read that image. Tick the items by hand.');
   }finally{
     if(worker) try{ await worker.terminate(); }catch(e){}
   }
+}
+
+// The item name is the first thing on a storage row; the rest is owner, date and
+// expiry. Keep enough to recognise it without the clutter.
+function itemish(text){
+  const t = String(text || '')
+    .replace(/\s{2,}.*$/, '')
+    .replace(/\s*\(Bound\)\s*/ig, ' ')
+    .replace(/\s*\d{4}[ -].*$/, '')
+    .replace(/[|\[\]]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  return t.length >= 6 && /[a-z]{3}/i.test(t) ? t.slice(0, 48) : null;
+}
+
+function reportUnknown(unknown, held){
+  const box = document.getElementById('unknown');
+  box.textContent = '';
+  box.hidden = !unknown.length && !held.length;
+  if(held.length){
+    const p = el('p', 'rowhint', 'Skipped, the guild leader\u2019s and never sold: ' + held.join(', ') + '.');
+    box.appendChild(p);
+  }
+  if(!unknown.length) return;
+  box.appendChild(el('p', 'rowhint',
+    'No price in the rules for these, so they were left out. Add them to ap_rules.json, '
+    + 'or tick them by hand if one is an item you already price under another name:'));
+  const ul = el('ul', 'unknown-list');
+  for(const n of unknown) ul.appendChild(el('li', null, n));
+  box.appendChild(ul);
 }
 
 function wireNav(){
@@ -1092,6 +1153,7 @@ function wireBuilder(){
     LEFTOVER.clear();
     refreshPost();
     document.getElementById('ocr-note').hidden = true;
+    document.getElementById('unknown').hidden = true;
     document.getElementById('copy-note').textContent = '';
     document.getElementById('rows-note').textContent = '';
     writeRows([]);
