@@ -199,6 +199,21 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   .stand-bar label{font-family:var(--mono); font-size:10.5px; letter-spacing:.16em; text-transform:uppercase; color:var(--faint)}
   .stand-bar select{font-family:var(--mono); font-size:13px; padding:8px 10px}
 
+  /* distribution list */
+  .who{border:1px solid var(--line); background:var(--surface); margin-bottom:12px}
+  .who > h3{font-family:var(--display); font-size:17px; font-weight:600; margin:0;
+    padding:12px 14px; border-bottom:1px solid var(--line); display:flex; gap:10px; align-items:baseline}
+  .who > h3 small{font-family:var(--mono); font-size:10.5px; letter-spacing:.14em;
+    text-transform:uppercase; color:var(--faint); margin-left:auto}
+  .who.done > h3{color:var(--faint)}
+  .give{display:flex; gap:11px; align-items:center; padding:9px 14px; border-top:1px solid #232939}
+  .give:first-of-type{border-top:0}
+  .give input{accent-color:var(--gold); width:16px; height:16px; flex:none}
+  .give .nm{flex:1; font-size:13.5px}
+  .give .nm small{display:block; color:var(--faint); font-family:var(--mono); font-size:10.5px}
+  .give.ok .nm{text-decoration:line-through; color:var(--faint)}
+  .give.ok .nm small{text-decoration:none}
+
   /* loot post builder */
   .builder{border:1px solid var(--line); background:var(--surface)}
   .drop{padding:18px; border-bottom:1px solid var(--line); display:flex; gap:14px; align-items:center; flex-wrap:wrap}
@@ -436,6 +451,17 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
       <p style="margin:0">Fixed-price items always cost their listed price, but an auction winner pays their own bid — so the <code>ap</code> column is what counts, and <code>item</code> links the row to the loot board for checking.</p>
     </div>
   </details>
+
+  <section id="hand-out" data-panel="post">
+    <h2>To hand out</h2>
+    <p class="sub" id="hand-sub">Loading…</p>
+    <div class="out-bar" style="margin:0 0 18px">
+      <button type="button" class="btn" id="copy-handout">Copy the list for Discord</button>
+      <button type="button" class="btn" id="reset-handout">Clear the ticks</button>
+      <span id="hand-note"></span>
+    </div>
+    <div id="hand-list"></div>
+  </section>
 
   <details class="fold" id="post" data-panel="post">
     <summary>Build the loot post</summary>
@@ -1174,6 +1200,14 @@ function wireBuilder(){
     }
   };
 
+  document.getElementById('copy-handout').onclick =
+    copier('hand-list', 'hand-note', handoutText, 'Copied. Paste it into Discord.');
+  document.getElementById('reset-handout').onclick = () => {
+    saveGiven(new Set());
+    buildHandout();
+    document.getElementById('hand-note').textContent = 'Ticks cleared.';
+  };
+
   document.getElementById('copy-post').onclick =
     copier('post-text', 'copy-note', null, 'Copied. Paste it into Discord.');
   document.getElementById('copy-rows').onclick =
@@ -1435,6 +1469,7 @@ async function loadRoster(){
     buildEvents();
     buildVault();
     buildSpend();
+    buildHandout();
     fillPicker();
     refresh();
     renderRoster(document.getElementById('search').value);
@@ -1508,6 +1543,91 @@ function buildVault(){
     tb.appendChild(tr);
   }
   labelCells('#vault-table');
+}
+
+const GIVEN_KEY = 'jollibee-ap-given';
+const givenSet = () => { try{ return new Set(JSON.parse(localStorage.getItem(GIVEN_KEY) || '[]')); }
+                         catch(e){ return new Set(); } };
+const saveGiven = set => { try{ localStorage.setItem(GIVEN_KEY, JSON.stringify([...set])); }catch(e){} };
+
+// Grouped by winner rather than by item: in game you pick a person and then hand
+// them things, so going item by item means finding the same name over and over.
+function buildHandout(){
+  const box = document.getElementById('hand-list');
+  const sub = document.getElementById('hand-sub');
+  if(!box) return;
+  box.textContent = '';
+
+  const won = LISTINGS.filter(l => l.winner && !l.open);
+  if(!won.length){
+    sub.textContent = 'Nothing waiting. Items appear here once the bidding system records a winner.';
+    return;
+  }
+
+  const given = givenSet();
+  const by = new Map();
+  for(const l of won){
+    if(!by.has(l.winner)) by.set(l.winner, []);
+    by.get(l.winner).push(l);
+  }
+  // Whoever still has something outstanding comes first.
+  const order = [...by.entries()].sort((a, b) => {
+    const left = g => g.filter(l => !given.has(handKey(l))).length;
+    return left(b[1]) - left(a[1]) || a[0].localeCompare(b[0]);
+  });
+
+  const total = won.length, done = won.filter(l => given.has(handKey(l))).length;
+  sub.textContent = `${total - done} of ${total} still to hand out, across ${by.size} ${by.size === 1 ? 'member' : 'members'}.`
+    + ' Ticks are remembered on this device only.';
+
+  for(const [winner, items] of order){
+    const card = el('div', 'who');
+    const outstanding = items.filter(l => !given.has(handKey(l))).length;
+    if(!outstanding) card.classList.add('done');
+    const h = el('h3');
+    h.appendChild(document.createTextNode(winner));
+    h.appendChild(el('small', null, outstanding ? outstanding + ' to give' : 'all done'));
+    card.appendChild(h);
+
+    for(const l of items){
+      const key = handKey(l);
+      const row = el('label', 'give' + (given.has(key) ? ' ok' : ''));
+      const cb = document.createElement('input');
+      cb.type = 'checkbox';
+      cb.checked = given.has(key);
+      cb.addEventListener('change', () => {
+        const now = givenSet();
+        cb.checked ? now.add(key) : now.delete(key);
+        saveGiven(now);
+        buildHandout();
+      });
+      const nm = el('div', 'nm');
+      nm.appendChild(document.createTextNode(l.name + (l.qty > 1 ? ' \u00d7' + l.qty : '')));
+      nm.appendChild(el('small', null, fmt(l.paid || l.price) + ' AP'));
+      row.append(cb, nm);
+      card.appendChild(row);
+    }
+    box.appendChild(card);
+  }
+}
+
+// Enough to tell two rows apart without depending on the sheet's row order, which
+// shifts as things are added.
+const handKey = l => [l.winner, l.name, l.qty, l.paid].join('|');
+
+function handoutText(){
+  const given = givenSet();
+  const won = LISTINGS.filter(l => l.winner && !l.open && !given.has(handKey(l)));
+  if(!won.length) return '';
+  const by = new Map();
+  for(const l of won){
+    if(!by.has(l.winner)) by.set(l.winner, []);
+    by.get(l.winner).push(l);
+  }
+  const L = ['**Loot going out**'];
+  for(const [winner, items] of by)
+    L.push(winner + ' \u2014 ' + items.map(l => l.name + (l.qty > 1 ? ' \u00d7' + l.qty : '')).join(', '));
+  return L.join('\n');
 }
 
 function buildSpend(){
