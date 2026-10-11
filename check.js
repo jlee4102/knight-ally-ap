@@ -242,6 +242,17 @@ check('a row listed twice is still one row', R('40-42, 41'), [40, 41, 42]);
 check('the first data row is row 2',
   readBidding([BID_HEAD, BID_HEAD.map(h => h === 'Item' ? 'Skill book' : '')])[0].row, 2);
 
+console.log('\nPutting like items together');
+eval(grab('function condense', '\nfunction buildHandout'));
+check('a run of rows collapses', condense([15, 16, 17]), '15-17');
+check('gaps are kept apart', condense([8, 10, 15, 16, 17]), '8, 10, 15-17');
+check('one row stays one row', condense([61]), '61');
+check('duplicates and disorder are tidied', condense([17, 15, 16, 15]), '15-17');
+// What condense prints must be something the row box accepts, or the two halves
+// of the page disagree about the same list.
+check('the row box reads back what condense wrote',
+  [...parseRows(condense([8, 10, 15, 16, 17]))].sort((a, b) => a - b), [8, 10, 15, 16, 17]);
+
 console.log('\nRows the builder writes');
 // The newline matters: the grabbed block ends on a comment line, so a return
 // appended directly to it would be commented out and the function returns nothing.

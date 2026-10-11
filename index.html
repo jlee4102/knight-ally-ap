@@ -1609,6 +1609,37 @@ function markRows(text, done){
   return {matched, missing};
 }
 
+// One entry per item per winner, keeping the wins behind it so the ticks and the
+// row box still work on the real rows.
+function lump(items){
+  const given = givenSet();
+  const by = new Map();
+  for(const l of [...items].sort((a, b) => a.row - b.row)){
+    if(!by.has(l.name)) by.set(l.name, {name: l.name, qty: 0, ap: 0, items: []});
+    const g = by.get(l.name);
+    g.qty += l.qty;
+    g.ap += l.paid || l.price * l.qty;
+    g.items.push(l);
+  }
+  const out = [...by.values()];
+  for(const g of out) g.done = g.items.every(l => given.has(handKey(l)));
+  return out.sort((a, b) => a.items[0].row - b.items[0].row);
+}
+
+// [8,10,15,16,17] reads as "8, 10, 15-17" — short enough to glance at, and still
+// something you can type straight back into the row box.
+function condense(nums){
+  const n = [...new Set(nums)].sort((a, b) => a - b);
+  const out = [];
+  for(let i = 0; i < n.length; ){
+    let j = i;
+    while(j + 1 < n.length && n[j + 1] === n[j] + 1) j++;
+    out.push(i === j ? String(n[i]) : n[i] + '-' + n[j]);
+    i = j + 1;
+  }
+  return out.join(', ');
+}
+
 function buildHandout(){
   const box = document.getElementById('hand-list');
   const sub = document.getElementById('hand-sub');
@@ -1634,7 +1665,9 @@ function buildHandout(){
   });
 
   const total = won.length, done = won.filter(l => given.has(handKey(l))).length;
-  sub.textContent = `${total - done} of ${total} still to hand out, across ${by.size} ${by.size === 1 ? 'member' : 'members'}.`
+  const handfuls = [...by.values()].reduce((n, items) => n + lump(items).length, 0);
+  sub.textContent = `${total - done} of ${total} still to hand out, across ${by.size} ${by.size === 1 ? 'member' : 'members'}`
+    + (handfuls < total ? ` — ${handfuls} handovers once like items are put together.` : '.')
     + ' Ticks are remembered on this device only.';
 
   for(const [winner, items] of order){
@@ -1660,8 +1693,11 @@ function buildHandout(){
         buildHandout();
       });
       const nm = el('div', 'nm');
-      nm.appendChild(document.createTextNode(l.name + (l.qty > 1 ? ' \u00d7' + l.qty : '')));
-      nm.appendChild(el('small', null, 'row ' + l.row + ' \u00b7 ' + fmt(l.paid || l.price) + ' AP'));
+      nm.appendChild(document.createTextNode(g.name + ' \u00d7' + g.qty));
+      nm.appendChild(el('small', null,
+        (g.items.length > 1 ? g.items.length + ' wins \u00b7 ' : '')
+        + 'row' + (g.items.length > 1 ? 's ' : ' ') + condense(g.items.map(l => l.row))
+        + ' \u00b7 ' + fmt(g.ap) + ' AP'));
       row.append(cb, nm);
       card.appendChild(row);
     }
@@ -1684,7 +1720,7 @@ function handoutText(){
   }
   const L = ['**Loot going out**'];
   for(const [winner, items] of by)
-    L.push(winner + ' \u2014 ' + items.map(l => l.name + (l.qty > 1 ? ' \u00d7' + l.qty : '')).join(', '));
+    L.push(winner + ' \u2014 ' + lump(items).map(g => g.name + ' \u00d7' + g.qty).join(', '));
   return L.join('\n');
 }
 
