@@ -92,11 +92,14 @@ check('a near-miss between two similar items is refused rather than guessed',
   hit('Arcane Scroll'), null);
 // Both chest aliases open "…Enhancement Scroll Selection Chest". The three
 // enhancement scrolls have no price yet and must not be dragged in with them.
-// Silent and Circulating have not been identified; the rules reserve blue aura
-// stones for the guild leader, so guessing them as the 175 AP stone could put
-// something unsellable up for auction.
-check('the unidentified auras are still refused',
-  ['Aura of Silent Manifestation', 'Aura of Circulating Manifestation'].filter(n => hit(n) !== null), []);
+// Red, green and the chest that gives them are the guild's to sell; blue is the
+// leader's. Pricing the blue one would be auctioning something that is not ours.
+check('red, green and the chest all reach the aura stone',
+  ['Aura of Intense Manifestation', 'Aura of Circulating Manifestation',
+   'Aura of Manifestation Selection Chest'].filter(n => hit(n) !== 'Aura stone (red or green only)'), []);
+check('the blue aura is held back, not priced', hit('Aura of Silent Manifestation'), null);
+check('and it is recognised as the leader’s rather than left unexplained',
+  !!notForSale('Aura of Silent Manifestation (Bound)'), true);
 // The individual scrolls and the chests that give them share most of their
 // wording and both cost 75, so a mix-up would not show as a wrong number — only
 // as the wrong name in the Discord post.

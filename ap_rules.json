@@ -116,7 +116,7 @@
     { "channel": "brilliant-pitchblack-apply", "name": "Pitch-black Armor Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
     { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Pitchblack chest", "aliases": ["Pitch-black Enhancement Scroll Selection Chest", "Brilliant Enhancement Scroll Selection Chest"], "method": "fixed", "price": 75, "unit": "per chest" },
     { "channel": "t3-crafting-material", "name": "T3 crafting material", "aliases": ["[E] Gear Crafting Material Selection Chest", "Gear Crafting Material Selection Chest"], "method": "auction", "min_bid": 75, "bid_step": 25 },
-    { "channel": "aura-stones", "name": "Aura stone (red or green only)", "aliases": ["Aura of Manifestation Selection Chest", "Aura of Intense Manifestation"], "method": "auction", "min_bid": 175, "bid_step": 25, "max_qty": 1 },
+    { "channel": "aura-stones", "name": "Aura stone (red or green only)", "aliases": ["Aura of Manifestation Selection Chest", "Aura of Intense Manifestation", "Aura of Circulating Manifestation"], "method": "auction", "min_bid": 175, "bid_step": 25, "max_qty": 1 },
     { "channel": "source-of-wisdom", "name": "Source of Wisdom", "method": "fixed", "price": 110 },
     { "channel": "blessing", "name": "Blessing stone", "method": "fixed", "price": 6, "unit": "per stone" },
     { "channel": "remnants", "name": "Forgotten Remnant", "method": "fixed", "price": 6, "unit": "per remnant" },
@@ -131,7 +131,7 @@
   ],
   "not_for_sale_guild_leader_only": [
     "Legend accessories", "Legend pants", "Legend boots", "Legend helmet", "4th advancement items",
-    "T1/T2 codex", "Morion", "Guild coin", "Higherseal", "Blue aura stones", "Essence of Curses", "Gold"
+    "T1/T2 codex", "Morion", "Guild coin", "Higherseal", "Blue aura stones", "Aura of Silent Manifestation", "Essence of Curses", "Gold"
   ],
   "auction_rules": {
     "duration_hours": 24,
