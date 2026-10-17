@@ -127,7 +127,13 @@ check('a bound suffix is ignored', hit('Essence of the Sky (Bound)   Superior   
 check('a longer in-game name still finds the item it belongs to',
   hit("Forgotten Transcendent's Remnant (Bound)   Superior   14 d left"), 'Forgotten Remnant');
 check('an item with no rules entry is refused rather than priced as something else',
-  hit('Belt of Exaltation (Bound)   Superior   14 d left'), null);
+  hit('Starlight Inscribed Pauldron (Bound)   Superior   14 d left'), null);
+// Everything seen in storage so far is accounted for: priced, or named as the
+// leader's. A drop that is neither should be the exception, not the rule.
+check('the loot known to be the leader’s is recognised by its in-game name',
+  ['Belt of Exaltation (Bound)', 'Necklace of Honor (Bound)', 'Aura of Silent Manifestation (Bound)',
+   'Morion (Bound)   750', 'Guild Coin   50K', 'Essence of Curses (Bound)', 'Gold   10M']
+    .filter(n => !notForSale(n)), []);
 // Gear material and T3 crafting material share most of their wording, and this
 // chest is the T3 one — the costlier of the two, so a slip here is expensive.
 check('the gear chest reaches T3, not the cheap gear material',
