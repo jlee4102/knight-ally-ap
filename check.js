@@ -92,6 +92,11 @@ check('a near-miss between two similar items is refused rather than guessed',
   hit('Arcane Scroll'), null);
 // Both chest aliases open "…Enhancement Scroll Selection Chest". The three
 // enhancement scrolls have no price yet and must not be dragged in with them.
+// Silent and Circulating have not been identified; the rules reserve blue aura
+// stones for the guild leader, so guessing them as the 175 AP stone could put
+// something unsellable up for auction.
+check('the unidentified auras are still refused',
+  ['Aura of Silent Manifestation', 'Aura of Circulating Manifestation'].filter(n => hit(n) !== null), []);
 check('the unpriced enhancement scrolls are still refused',
   ['Brilliant Armor Enhancement Scroll', 'Brilliant Accessory Enhancement Scroll',
    'Brilliant Weapon Enhancement Scroll'].filter(n => hit(n) !== null), []);
@@ -127,6 +132,8 @@ check('the in-game names on the sheet all reach their item', (() => {
     'Superior Arcane Scroll of Discipline': 'Superior Arcane Scroll',
     'Skill Book - Piercing Arrow I': 'Skill book',
     'Crystal of Liberation (Bound)': 'Crystal of Liberation (Potential)',
+    'Aura of Manifestation Selection Chest (Bound)': 'Aura stone (red or green only)',
+    'Aura of Intense Manifestation (Bound)': 'Aura stone (red or green only)',
     'Pitch-black Enhancement Scroll Selection Chest II (Bound)': 'Brilliant Pitchblack chest',
     'Brilliant Enhancement Scroll Selection Chest II (Bound)': 'Brilliant Pitchblack chest',
   };
