@@ -97,9 +97,20 @@ check('a near-miss between two similar items is refused rather than guessed',
 // something unsellable up for auction.
 check('the unidentified auras are still refused',
   ['Aura of Silent Manifestation', 'Aura of Circulating Manifestation'].filter(n => hit(n) !== null), []);
-check('the unpriced enhancement scrolls are still refused',
-  ['Brilliant Armor Enhancement Scroll', 'Brilliant Accessory Enhancement Scroll',
-   'Brilliant Weapon Enhancement Scroll'].filter(n => hit(n) !== null), []);
+// The individual scrolls and the chests that give them share most of their
+// wording and both cost 75, so a mix-up would not show as a wrong number — only
+// as the wrong name in the Discord post.
+check('each enhancement scroll reaches its own entry, not the chest',
+  ['Brilliant Accessory Enhancement Scroll', 'Brilliant Armor Enhancement Scroll',
+   'Brilliant Weapon Enhancement Scroll', 'Pitch-black Accessory Enhancement Scroll',
+   'Pitch-black Armor Enhancement Scroll'].filter(n => hit(n) !== n), []);
+check('the Selection Chests still reach the chest',
+  ['Brilliant Enhancement Scroll Selection Chest II (Bound)',
+   'Pitch-black Enhancement Scroll Selection Chest II (Bound)']
+    .filter(n => hit(n) !== 'Brilliant Pitchblack chest'), []);
+check('a scroll and the chest that gives it cost the same',
+  RULES.items.find(i => i.name === 'Brilliant Armor Enhancement Scroll').price,
+  RULES.items.find(i => i.name === 'Brilliant Pitchblack chest').price);
 // Real storage rows. The rarity column is the trap: this line contains every word
 // of "Superior Arcane Scroll", but the name that is actually written is Higher.
 check('the rarity column does not steal the match',
@@ -113,7 +124,12 @@ check('a bound suffix is ignored', hit('Essence of the Sky (Bound)   Superior   
 check('a longer in-game name still finds the item it belongs to',
   hit("Forgotten Transcendent's Remnant (Bound)   Superior   14 d left"), 'Forgotten Remnant');
 check('an item with no rules entry is refused rather than priced as something else',
-  hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1 - Main Round'), null);
+  hit('Belt of Exaltation (Bound)   Superior   14 d left'), null);
+// Gear material and T3 crafting material share most of their wording, and this
+// chest is the T3 one — the costlier of the two, so a slip here is expensive.
+check('the gear chest reaches T3, not the cheap gear material',
+  hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1 - Main Round'),
+  'T3 crafting material');
 // The aliases mechanism stays and is exercised here, so the next in-game name that
 // does not match a short name is one line of config rather than a code change.
 // Aliases are exact in-game names, matched intact. Scored loosely, one whose
@@ -150,8 +166,8 @@ check('an alias reaches the item it belongs to', (() => {
   // Set and put back exactly as it was: deleting the key would wipe a real alias.
   const gear = RULES.items.find(i => i.channel === 'gear-mats-apply');
   const had = gear.aliases;
-  gear.aliases = ['Gear Crafting Material Selection Chest'];
-  const got = hit('[E] Gear Crafting Material Selection Chest (Bound)   Week 1');
+  gear.aliases = ['Reinforced Gear Material Pouch'];
+  const got = hit('Reinforced Gear Material Pouch (Bound)');
   if(had) gear.aliases = had; else delete gear.aliases;
   return got;
 })(), 'Gear material');
