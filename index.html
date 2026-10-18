@@ -527,6 +527,10 @@ const TAB_EVENTS  = 'Event Logs';
 const TAB_BIDDING  = 'Bidding Item';
 const TAB_SPEND    = 'AP Transactions';
 
+// Members whose purchases are kept off the Purchases tab, at their own request.
+// Their spend still shows in Standings, which reads the bot's AP Spent column.
+const HIDE_PURCHASES = ['NC | Legacy'];
+
 // Columns on AP Records, mapped to the events in the rules file.
 const EARN_COLUMNS = [
   {header:'Crusade AP',          event:'crusade_dominion', label:'Crusade / Dominion'},
@@ -1405,7 +1409,9 @@ function readMembers(recordRows){
 // Every purchase the bidding bot has put through, newest first. This is the
 // receipt trail: who paid what, and what their balance was either side of it.
 function readSpend(rows){
-  return rowObjects(rows).filter(r => r['Player Name']).map(r => ({
+  return rowObjects(rows)
+    .filter(r => r['Player Name'] && !HIDE_PURCHASES.includes(r['Player Name'].trim()))
+    .map(r => ({
     when: (r['Date UTC'] || '').replace('T', ' ').slice(0, 16),
     name: r['Player Name'],
     method: r.Method || '',

@@ -222,6 +222,23 @@ check('the balance is unaffected by it', bal('NC | Adrift').balance, 150);
 check('a column the bot added is still shown in the breakdown',
   bal('NC | Mismatch').att.battlefield_elite, 20);
 
+console.log('\nHidden purchases');
+// readSpend closes over toNum and rowObjects, so bring the whole reader block.
+eval(grab('const HIDE_PURCHASES', '\nconst tabUrl') + grab('const headerIndex', '\nlet EVENTS'));
+const SP_HEAD = ['Transaction ID', 'Date UTC', 'Discord ID', 'Player Name', 'Method', 'Item',
+                 'Qty', 'AP Charged', 'Balance Before', 'Balance After', 'Status'];
+const spend = rows => readSpend([SP_HEAD, ...rows.map(r => SP_HEAD.map(h => r[h] ?? ''))]);
+const twoRows = [
+  {'Player Name': 'NC | Legacy', Item: 'Source of Wisdom', 'AP Charged': '110', Status: 'COMPLETE'},
+  {'Player Name': 'NC | Chielo', Item: 'Blessing stone', 'AP Charged': '6', Status: 'COMPLETE'},
+];
+check('a hidden member is left out of the feed', spend(twoRows).map(t => t.name), ['NC | Chielo']);
+// A trailing space in the sheet must not defeat it.
+check('the match ignores surrounding whitespace',
+  spend([{'Player Name': ' NC | Legacy ', Item: 'x', 'AP Charged': '1', Status: 'COMPLETE'}]).length, 0);
+check('a member not on the list is untouched',
+  spend(twoRows).map(t => t.ap), [6]);
+
 console.log('\nBidding Item tab');
 // Same eval as its helpers: readBidding closes over toNum, rowObjects and itemCost.
 eval(grab('function itemCost', '\nfunction buildPicks')
