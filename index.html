@@ -528,8 +528,14 @@ const TAB_BIDDING  = 'Bidding Item';
 const TAB_SPEND    = 'AP Transactions';
 
 // Members whose purchases are kept off the Purchases tab, at their own request.
-// Their spend still shows in Standings, which reads the bot's AP Spent column.
-const HIDE_PURCHASES = ['NC | Legacy'];
+// This is tidying, not privacy: the sheet is public, and the same spend shows in
+// Standings and as the winner on the vault board.
+// Discord IDs where known, because a display name can be renamed or recased and
+// the filter would then quietly stop matching.
+const HIDE_PURCHASES = ['1280483477816475691', 'NC | Legacy'];
+const HIDDEN = new Set(HIDE_PURCHASES.map(v => String(v).trim().toLowerCase()));
+const isHidden = r => HIDDEN.has(String(r['Discord ID'] || '').trim().toLowerCase())
+                   || HIDDEN.has(String(r['Player Name'] || '').trim().toLowerCase());
 
 // Columns on AP Records, mapped to the events in the rules file.
 const EARN_COLUMNS = [
@@ -1410,7 +1416,7 @@ function readMembers(recordRows){
 // receipt trail: who paid what, and what their balance was either side of it.
 function readSpend(rows){
   return rowObjects(rows)
-    .filter(r => r['Player Name'] && !HIDE_PURCHASES.includes(r['Player Name'].trim()))
+    .filter(r => r['Player Name'] && !isHidden(r))
     .map(r => ({
     when: (r['Date UTC'] || '').replace('T', ' ').slice(0, 16),
     name: r['Player Name'],

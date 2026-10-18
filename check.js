@@ -228,16 +228,23 @@ eval(grab('const HIDE_PURCHASES', '\nconst tabUrl') + grab('const headerIndex', 
 const SP_HEAD = ['Transaction ID', 'Date UTC', 'Discord ID', 'Player Name', 'Method', 'Item',
                  'Qty', 'AP Charged', 'Balance Before', 'Balance After', 'Status'];
 const spend = rows => readSpend([SP_HEAD, ...rows.map(r => SP_HEAD.map(h => r[h] ?? ''))]);
+const LEG = '1280483477816475691';
 const twoRows = [
-  {'Player Name': 'NC | Legacy', Item: 'Source of Wisdom', 'AP Charged': '110', Status: 'COMPLETE'},
-  {'Player Name': 'NC | Chielo', Item: 'Blessing stone', 'AP Charged': '6', Status: 'COMPLETE'},
+  {'Discord ID': LEG, 'Player Name': 'NC | Legacy', Item: 'Source of Wisdom', 'AP Charged': '110', Status: 'COMPLETE'},
+  {'Discord ID': '9', 'Player Name': 'NC | Chielo', Item: 'Blessing stone', 'AP Charged': '6', Status: 'COMPLETE'},
 ];
 check('a hidden member is left out of the feed', spend(twoRows).map(t => t.name), ['NC | Chielo']);
-// A trailing space in the sheet must not defeat it.
-check('the match ignores surrounding whitespace',
-  spend([{'Player Name': ' NC | Legacy ', Item: 'x', 'AP Charged': '1', Status: 'COMPLETE'}]).length, 0);
-check('a member not on the list is untouched',
-  spend(twoRows).map(t => t.ap), [6]);
+check('a member not on the list is untouched', spend(twoRows).map(t => t.ap), [6]);
+// The filter keys on Discord ID, so a rename or a change of case cannot quietly
+// switch it off - which is how a hide fails: silently, showing what it should not.
+check('a renamed member is still hidden',
+  spend([{'Discord ID': LEG, 'Player Name': 'NC | Something Else', Item: 'x', 'AP Charged': '1', Status: 'COMPLETE'}]).length, 0);
+check('a recased name is still hidden',
+  spend([{'Discord ID': '', 'Player Name': 'nc | LEGACY', Item: 'x', 'AP Charged': '1', Status: 'COMPLETE'}]).length, 0);
+check('surrounding whitespace does not defeat it',
+  spend([{'Discord ID': ' ' + LEG + ' ', 'Player Name': 'x', Item: 'x', 'AP Charged': '1', Status: 'COMPLETE'}]).length, 0);
+check('a different member who merely looks similar is not hidden',
+  spend([{'Discord ID': '12804834778164756', 'Player Name': 'NC | Legacyy', Item: 'x', 'AP Charged': '1', Status: 'COMPLETE'}]).length, 1);
 
 console.log('\nBidding Item tab');
 // Same eval as its helpers: readBidding closes over toNum, rowObjects and itemCost.
