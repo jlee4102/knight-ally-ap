@@ -939,8 +939,9 @@ function writeRows(){
     const it = RULES.items[lot.i];
     return [
       posted,
-      // The name is what Discord shows, so the count goes in it as well as its column.
-      it.name + (lot.qty > 1 ? ' \u00d7' + lot.qty : ''),
+      // The name is what Discord shows, and it is the only thing distinguishing one
+      // listing from another there, so the count always goes in it \u2014 \u00d71 included.
+      it.name + ' \u00d7' + lot.qty,
       lot.qty,
       it.method,
       itemCost(it),

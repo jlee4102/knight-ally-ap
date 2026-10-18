@@ -105,9 +105,9 @@
   },
   "items": [
     { "channel": "legend-glider-lvl-apply", "name": "Glider material (Orbs of Winds)", "aliases": ["Orb of Winds"], "method": "fixed", "price": 6, "unit": "per orb", "max_qty": 25 },
-    { "channel": "legend-chest", "name": "Golden Insignia fragments (chest)", "aliases": ["Golden Cuirass Insignia Fragment"], "method": "auction_batch", "min_per_unit": 5, "bid_step": 5, "unit": "per fragment" },
-    { "channel": "legend-cape", "name": "Golden Insignia fragments (cape)", "aliases": ["Golden Cape Insignia Fragment"], "method": "auction_batch", "min_per_unit": 5, "bid_step": 5, "unit": "per fragment" },
-    { "channel": "legend-gloves", "name": "Golden Insignia fragments (gloves)", "aliases": ["Golden Gloves Insignia Fragment"], "method": "auction_batch", "min_per_unit": 5, "bid_step": 5, "unit": "per fragment" },
+    { "channel": "legend-chest", "name": "Golden Insignia fragments (chest)", "aliases": ["Golden Cuirass Insignia Fragment"], "method": "auction", "min_bid": 5, "bid_step": 5, "unit": "per fragment" },
+    { "channel": "legend-cape", "name": "Golden Insignia fragments (cape)", "aliases": ["Golden Cape Insignia Fragment"], "method": "auction", "min_bid": 5, "bid_step": 5, "unit": "per fragment" },
+    { "channel": "legend-gloves", "name": "Golden Insignia fragments (gloves)", "aliases": ["Golden Gloves Insignia Fragment"], "method": "auction", "min_bid": 5, "bid_step": 5, "unit": "per fragment" },
     { "channel": "legend-scrolls", "name": "Legendary scroll (Arcane Scroll Selection Chest)", "aliases": ["[L] Arcane Scroll Selection Chest"], "method": "auction", "min_bid": 25, "bid_step": 25 },
     { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Accessory Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
     { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Armor Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },

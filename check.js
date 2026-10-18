@@ -286,6 +286,12 @@ check('a stack priced at exactly its multiplied minimum is fine',
   bid({Item: 'Skill book ×3', 'AP Price': String(bookMin * 3), Status: 'Available'}).flags.length, 0);
 check('a plain name with no count is a quantity of one',
   bid({Item: 'Skill book', 'AP Price': '150', Status: 'Available'}).qty, 1);
+// Every row the builder writes carries its count, x1 included, because the name
+// is the only thing telling two listings apart in Discord.
+check('a count of one is read back and stripped',
+  [bid({Item: 'Skill book ×1', 'AP Price': '100', Status: 'Available'}).qty,
+   bid({Item: 'Skill book ×1', 'AP Price': '100', Status: 'Available'}).name],
+  [1, 'Skill book']);
 check('an explicit qty column wins over the count in the name',
   bid({Item: 'Skill book ×9', qty: '1', 'AP Price': '150', Status: 'Available'}).qty, 1);
 
@@ -317,9 +323,19 @@ check('duplicates and disorder are tidied', condense([17, 15, 16, 15]), '15-17')
 check('the row box reads back what condense wrote',
   [...parseRows(condense([8, 10, 15, 16, 17]))].sort((a, b) => a - b), [8, 10, 15, 16, 17]);
 
+console.log('\nMethods the bidding bot understands');
+// It only ever writes fixed or auction into AP Transactions, and silently drops a
+// row with anything else: 13 auction_batch fragment rows were listed and not one
+// sold, while fixed and auction rows pasted in the same batch all did.
+check('no item uses a method the bot cannot read',
+  RULES.items.filter(i => !['fixed', 'auction'].includes(i.method)).map(i => i.name), []);
+check('fragments kept their cheap bid step',
+  RULES.items.filter(i => i.name.startsWith('Golden Insignia')).map(i => i.bid_step), [5, 5, 5]);
+
 console.log('\nRows the builder writes');
 // The newline matters: the grabbed block ends on a comment line, so a return
 // appended directly to it would be commented out and the function returns nothing.
+const LOTS_METHODS = [...new Set(RULES.items.map(i => i.method))];
 const { LISTING_HEAD } = new Function(
   grab('const LISTING_HEAD', '\nfunction writeRows') + '\nreturn {LISTING_HEAD};')();
 // A pasted row lands by position, so this has to stay in the tab's own order.
