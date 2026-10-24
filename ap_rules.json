@@ -114,6 +114,7 @@
     { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Weapon Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
     { "channel": "brilliant-pitchblack-apply", "name": "Pitch-black Accessory Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
     { "channel": "brilliant-pitchblack-apply", "name": "Pitch-black Armor Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
+    { "channel": "brilliant-pitchblack-apply", "name": "Pitch-black Weapon Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
     { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Pitchblack chest", "aliases": ["Pitch-black Enhancement Scroll Selection Chest", "Brilliant Enhancement Scroll Selection Chest"], "method": "fixed", "price": 75, "unit": "per chest" },
     { "channel": "t3-crafting-material", "name": "T3 crafting material", "aliases": ["[E] Gear Crafting Material Selection Chest", "Gear Crafting Material Selection Chest"], "method": "auction", "min_bid": 75, "bid_step": 25 },
     { "channel": "aura-stones", "name": "Aura stone (red or green only)", "aliases": ["Aura of Manifestation Selection Chest", "Aura of Intense Manifestation", "Aura of Circulating Manifestation"], "method": "auction", "min_bid": 175, "bid_step": 25, "max_qty": 1 },
