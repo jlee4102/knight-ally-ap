@@ -372,5 +372,29 @@ check('each storage row stays its own stack rather than being merged',
 check('an expiry or timestamp on the line is not mistaken for a quantity',
   readQty('Higher Arcane Scroll of Discipline  Superior  2026 14:09 (UTC-4)  14 d left'), 1);
 
+console.log('');
+console.log('Handout day filter');
+{
+  const src = grab('function readBidding', '\n}');
+  check('a listing carries the day it was posted',
+    /day: \(r\.ID \|\| ''\)\.slice\(0, 10\)/.test(src), true);
+
+  const hb = grab('function buildHandout', '\n}\n');
+  check('the newest day is the default', /days\[0\] \|\| ''/.test(hb), true);
+  check('picking a day narrows the list, every day does not',
+    /day \? all\.filter\(l => l\.day === day\) : all/.test(hb), true);
+  check('changing the day redraws', /pick\.onchange = buildHandout/.test(hb), true);
+
+  // The filter itself, run for real.
+  const all = [
+    {winner: 'A', day: '2026-10-24'}, {winner: 'A', day: '2026-10-24'},
+    {winner: 'B', day: '2026-10-17'}, {winner: 'C', day: ''},
+  ];
+  const days = [...new Set(all.map(l => l.day).filter(Boolean))].sort().reverse();
+  check('the newest day sorts first', days[0], '2026-10-24');
+  check('only that day is listed', all.filter(l => l.day === days[0]).length, 2);
+  check('every day still shows the undated row too', all.length, 4);
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');
 process.exit(failed ? 1 : 0);

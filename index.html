@@ -458,6 +458,8 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
     <h2>To hand out</h2>
     <p class="sub" id="hand-sub">Loading…</p>
     <div class="out-bar" style="margin:0 0 14px">
+      <label for="hand-day" class="olbl" style="margin:0">Posted</label>
+      <select id="hand-day" aria-label="Which day's loot to show"></select>
       <label for="hand-rows" class="olbl" style="margin:0">Mark rows done</label>
       <input type="text" id="hand-rows" placeholder="e.g. 40-55, 61, 63" aria-label="Sheet rows to mark as handed out">
       <button type="button" class="btn go" id="hand-mark">Mark</button>
@@ -1461,6 +1463,7 @@ function readBidding(rows){
       winner: r.Winner || '',
       status: open ? 'open' : (r.Status || 'closed').toLowerCase(),
       open, due: false, closes: null, posted: null,
+      day: (r.ID || '').slice(0, 10),
     };
   });
 }
@@ -1661,7 +1664,20 @@ function buildHandout(){
   if(!box) return;
   box.textContent = '';
 
-  const won = LISTINGS.filter(l => l.winner && !l.open);
+  // Older days are loot already in people's hands, so the newest drop is the
+  // default; the picker is there for the odd leftover.
+  const all = LISTINGS.filter(l => l.winner && !l.open);
+  const days = [...new Set(all.map(l => l.day).filter(Boolean))].sort().reverse();
+  const pick = document.getElementById('hand-day');
+  if(pick && pick.options.length !== days.length + 1){
+    pick.textContent = '';
+    for(const d of days) pick.appendChild(el('option', null, d)).value = d;
+    pick.appendChild(el('option', null, 'every day')).value = '';
+    pick.value = days[0] || '';
+    pick.onchange = buildHandout;
+  }
+  const day = pick ? pick.value : '';
+  const won = day ? all.filter(l => l.day === day) : all;
   if(!won.length){
     sub.textContent = 'Nothing waiting. Items appear here once the bidding system records a winner.';
     return;
