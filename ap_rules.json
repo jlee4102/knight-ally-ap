@@ -8,7 +8,11 @@
       "per_week": 2,
       "schedule": "Wed and Sat 9 pm (Crusade and Dominion alternate)",
       "type": "pvp",
-      "win_bonus": { "ap": 20, "status": "live in Chielo", "note": "union win counts; everyone on the check-in gets it" }
+      "win_bonus": {
+        "ap": 20,
+        "status": "live in Chielo",
+        "note": "union win counts; everyone on the check-in gets it"
+      }
     },
     "gvg": {
       "label": "Guild Battlefield (GvG)",
@@ -16,7 +20,10 @@
       "per_week": 2,
       "schedule": "Tue and Fri 9 pm",
       "type": "pvp",
-      "win_bonus": { "ap": 20, "status": "live in Chielo" }
+      "win_bonus": {
+        "ap": 20,
+        "status": "live in Chielo"
+      }
     },
     "guild_dungeon": {
       "label": "Guild Dungeon run (Kodshee, Tiarak, Antimeness)",
@@ -24,14 +31,20 @@
       "per_week": 1,
       "schedule": "weekly; resets Monday 4:00",
       "type": "pve",
-      "win_bonus": { "ap": 20, "status": "live in Chielo" }
+      "win_bonus": {
+        "ap": 20,
+        "status": "live in Chielo"
+      }
     },
     "epic_dungeon": {
       "label": "Epic Dungeon boss (ED 90 or ED 110)",
       "base_ap": 35,
       "per_week": 1,
       "type": "pve",
-      "win_bonus": { "ap": 20, "status": "live in Chielo" }
+      "win_bonus": {
+        "ap": 20,
+        "status": "live in Chielo"
+      }
     },
     "world_boss": {
       "label": "World boss / World Dungeon (Hisharat, Chantarat)",
@@ -39,45 +52,91 @@
       "per_week": 2,
       "schedule": "Thu and Sun",
       "type": "pve",
-      "win_bonus": { "ap": 20, "status": "live in Chielo" }
+      "win_bonus": {
+        "ap": 20,
+        "status": "live in Chielo"
+      }
     },
     "caves_1": {
       "label": "Cave 1 boss (Ice Cavern, server only)",
-      "bosses": ["Dardaloca", "Hotura"],
+      "bosses": [
+        "Dardaloca",
+        "Hotura"
+      ],
       "base_ap": 3,
       "per_week": 10,
       "_per_week_note": "the split of the 28 cave runs a week across the three levels is a guess; correct it here",
       "type": "pve",
       "low_turnout_bonus": [
-        { "min_members": 1, "max_members": 3, "ap": 7 },
-        { "min_members": 4, "max_members": 7, "ap": 5 },
-        { "min_members": 8, "max_members": null, "ap": 3 }
+        {
+          "min_members": 1,
+          "max_members": 3,
+          "ap": 7
+        },
+        {
+          "min_members": 4,
+          "max_members": 7,
+          "ap": 5
+        },
+        {
+          "min_members": 8,
+          "max_members": null,
+          "ap": 3
+        }
       ]
     },
     "caves_2": {
       "label": "Cave 2 boss (Ice Cavern, server only)",
-      "bosses": ["Frenzied Tigdal"],
+      "bosses": [
+        "Frenzied Tigdal"
+      ],
       "base_ap": 7,
       "per_week": 9,
       "_per_week_note": "the split of the 28 cave runs a week across the three levels is a guess; correct it here",
       "type": "pve",
       "low_turnout_bonus": [
-        { "min_members": 1, "max_members": 3, "ap": 13 },
-        { "min_members": 4, "max_members": 7, "ap": 11 },
-        { "min_members": 8, "max_members": null, "ap": 7 }
+        {
+          "min_members": 1,
+          "max_members": 3,
+          "ap": 13
+        },
+        {
+          "min_members": 4,
+          "max_members": 7,
+          "ap": 11
+        },
+        {
+          "min_members": 8,
+          "max_members": null,
+          "ap": 7
+        }
       ]
     },
     "caves_3": {
       "label": "Cave 3 boss (Ice Cavern, server only)",
-      "bosses": ["Corrupted Gatphillian"],
+      "bosses": [
+        "Corrupted Gatphillian"
+      ],
       "base_ap": 12,
       "per_week": 9,
       "_per_week_note": "the split of the 28 cave runs a week across the three levels is a guess; correct it here",
       "type": "pve",
       "low_turnout_bonus": [
-        { "min_members": 1, "max_members": 3, "ap": 20 },
-        { "min_members": 4, "max_members": 7, "ap": 17 },
-        { "min_members": 8, "max_members": null, "ap": 12 }
+        {
+          "min_members": 1,
+          "max_members": 3,
+          "ap": 20
+        },
+        {
+          "min_members": 4,
+          "max_members": 7,
+          "ap": 17
+        },
+        {
+          "min_members": 8,
+          "max_members": null,
+          "ap": 12
+        }
       ]
     },
     "region_boss": {
@@ -86,9 +145,21 @@
       "per_week": 14,
       "type": "pve",
       "low_turnout_bonus": [
-        { "min_members": 1, "max_members": 3, "ap": 20 },
-        { "min_members": 4, "max_members": 7, "ap": 17 },
-        { "min_members": 8, "max_members": null, "ap": 12 }
+        {
+          "min_members": 1,
+          "max_members": 3,
+          "ap": 20
+        },
+        {
+          "min_members": 4,
+          "max_members": 7,
+          "ap": 17
+        },
+        {
+          "min_members": 8,
+          "max_members": null,
+          "ap": 12
+        }
       ]
     },
     "battlefield_elite": {
@@ -97,42 +168,261 @@
       "per_week": 7,
       "type": "pve",
       "low_turnout_bonus": [
-        { "min_members": 1, "max_members": 3, "ap": 20 },
-        { "min_members": 4, "max_members": 7, "ap": 17 },
-        { "min_members": 8, "max_members": null, "ap": 12 }
+        {
+          "min_members": 1,
+          "max_members": 3,
+          "ap": 20
+        },
+        {
+          "min_members": 4,
+          "max_members": 7,
+          "ap": 17
+        },
+        {
+          "min_members": 8,
+          "max_members": null,
+          "ap": 12
+        }
       ]
     }
   },
   "items": [
-    { "channel": "legend-glider-lvl-apply", "name": "Glider material (Orbs of Winds)", "aliases": ["Orb of Winds"], "method": "fixed", "price": 6, "unit": "per orb", "max_qty": 25 },
-    { "channel": "legend-chest", "name": "Golden Insignia fragments (chest)", "aliases": ["Golden Cuirass Insignia Fragment"], "method": "auction", "min_bid": 5, "bid_step": 5, "unit": "per fragment" },
-    { "channel": "legend-cape", "name": "Golden Insignia fragments (cape)", "aliases": ["Golden Cape Insignia Fragment"], "method": "auction", "min_bid": 5, "bid_step": 5, "unit": "per fragment" },
-    { "channel": "legend-gloves", "name": "Golden Insignia fragments (gloves)", "aliases": ["Golden Gloves Insignia Fragment"], "method": "auction", "min_bid": 5, "bid_step": 5, "unit": "per fragment" },
-    { "channel": "legend-scrolls", "name": "Legendary scroll (Arcane Scroll Selection Chest)", "aliases": ["[L] Arcane Scroll Selection Chest"], "method": "auction", "min_bid": 25, "bid_step": 25 },
-    { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Accessory Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
-    { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Armor Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
-    { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Weapon Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
-    { "channel": "brilliant-pitchblack-apply", "name": "Pitch-black Accessory Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
-    { "channel": "brilliant-pitchblack-apply", "name": "Pitch-black Armor Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
-    { "channel": "brilliant-pitchblack-apply", "name": "Pitch-black Weapon Enhancement Scroll", "method": "fixed", "price": 75, "unit": "per scroll" },
-    { "channel": "brilliant-pitchblack-apply", "name": "Brilliant Pitchblack chest", "aliases": ["Pitch-black Enhancement Scroll Selection Chest", "Brilliant Enhancement Scroll Selection Chest"], "method": "fixed", "price": 75, "unit": "per chest" },
-    { "channel": "t3-crafting-material", "name": "T3 crafting material", "aliases": ["[E] Gear Crafting Material Selection Chest", "Gear Crafting Material Selection Chest"], "method": "auction", "min_bid": 75, "bid_step": 25 },
-    { "channel": "aura-stones", "name": "Aura stone (red or green only)", "aliases": ["Aura of Manifestation Selection Chest", "Aura of Intense Manifestation", "Aura of Circulating Manifestation"], "method": "auction", "min_bid": 175, "bid_step": 25, "max_qty": 1 },
-    { "channel": "source-of-wisdom", "name": "Source of Wisdom", "method": "fixed", "price": 110 },
-    { "channel": "blessing", "name": "Blessing stone", "method": "fixed", "price": 6, "unit": "per stone" },
-    { "channel": "remnants", "name": "Forgotten Remnant", "method": "fixed", "price": 6, "unit": "per remnant" },
-    { "channel": "skillbooks", "name": "Skill book", "method": "auction", "min_bid": 100, "bid_step": 25, "unit": "per book", "max_qty": 1 },
-    { "channel": "gear-mats-apply", "name": "Gear material", "method": "fixed", "price": 4, "unit": "per unit" },
-    { "channel": "potential", "name": "Crystal of Liberation (Potential)", "method": "fixed", "price": 4, "unit": "per crystal", "max_qty": 20 },
-    { "channel": "t3-gear-post", "name": "Epic T3 gear", "method": "auction", "min_bid": 75, "bid_step": 25 },
-    { "channel": null, "name": "Higher Arcane Scroll", "method": "fixed", "price": 2, "unit": "per scroll" },
-    { "channel": "legend-scrolls", "name": "Superior Arcane Scroll", "method": "auction", "min_bid": 25, "bid_step": 25, "unit": "per scroll" },
-    { "channel": null, "name": "Master's Aircraft Toolbox", "method": "fixed", "price": 35, "unit": "each" },
-    { "channel": null, "name": "Essence of the Sky", "method": "fixed", "price": 35, "unit": "each" }
+    {
+      "channel": "legend-glider-lvl-apply",
+      "name": "Glider material (Orbs of Winds)",
+      "aliases": [
+        "Orb of Winds"
+      ],
+      "method": "fixed",
+      "price": 6,
+      "unit": "per orb",
+      "max_qty": 25
+    },
+    {
+      "channel": "legend-chest",
+      "name": "Golden Insignia fragments (chest)",
+      "aliases": [
+        "Golden Cuirass Insignia Fragment"
+      ],
+      "method": "auction",
+      "min_bid": 5,
+      "bid_step": 5,
+      "unit": "per fragment"
+    },
+    {
+      "channel": "legend-cape",
+      "name": "Golden Insignia fragments (cape)",
+      "aliases": [
+        "Golden Cape Insignia Fragment"
+      ],
+      "method": "auction",
+      "min_bid": 5,
+      "bid_step": 5,
+      "unit": "per fragment"
+    },
+    {
+      "channel": "legend-gloves",
+      "name": "Golden Insignia fragments (gloves)",
+      "aliases": [
+        "Golden Gloves Insignia Fragment"
+      ],
+      "method": "auction",
+      "min_bid": 8,
+      "bid_step": 5,
+      "unit": "per fragment"
+    },
+    {
+      "channel": "legend-scrolls",
+      "name": "Legendary scroll (Arcane Scroll Selection Chest)",
+      "aliases": [
+        "[L] Arcane Scroll Selection Chest"
+      ],
+      "method": "auction",
+      "min_bid": 25,
+      "bid_step": 25
+    },
+    {
+      "channel": "brilliant-pitchblack-apply",
+      "name": "Brilliant Accessory Enhancement Scroll",
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25,
+      "unit": "per scroll"
+    },
+    {
+      "channel": "brilliant-pitchblack-apply",
+      "name": "Brilliant Armor Enhancement Scroll",
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25,
+      "unit": "per scroll"
+    },
+    {
+      "channel": "brilliant-pitchblack-apply",
+      "name": "Brilliant Weapon Enhancement Scroll",
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25,
+      "unit": "per scroll"
+    },
+    {
+      "channel": "brilliant-pitchblack-apply",
+      "name": "Pitch-black Accessory Enhancement Scroll",
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25,
+      "unit": "per scroll"
+    },
+    {
+      "channel": "brilliant-pitchblack-apply",
+      "name": "Pitch-black Armor Enhancement Scroll",
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25,
+      "unit": "per scroll"
+    },
+    {
+      "channel": "brilliant-pitchblack-apply",
+      "name": "Pitch-black Weapon Enhancement Scroll",
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25,
+      "unit": "per scroll"
+    },
+    {
+      "channel": "brilliant-pitchblack-apply",
+      "name": "Brilliant Pitchblack chest",
+      "aliases": [
+        "Pitch-black Enhancement Scroll Selection Chest",
+        "Brilliant Enhancement Scroll Selection Chest"
+      ],
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25,
+      "unit": "per chest"
+    },
+    {
+      "channel": "t3-crafting-material",
+      "name": "T3 crafting material",
+      "aliases": [
+        "[E] Gear Crafting Material Selection Chest",
+        "Gear Crafting Material Selection Chest"
+      ],
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25
+    },
+    {
+      "channel": "aura-stones",
+      "name": "Aura stone (red or green only)",
+      "aliases": [
+        "Aura of Manifestation Selection Chest",
+        "Aura of Intense Manifestation",
+        "Aura of Circulating Manifestation"
+      ],
+      "method": "auction",
+      "min_bid": 350,
+      "bid_step": 25,
+      "max_qty": 1
+    },
+    {
+      "channel": "source-of-wisdom",
+      "name": "Source of Wisdom",
+      "method": "auction",
+      "min_bid": 110,
+      "bid_step": 25
+    },
+    {
+      "channel": "blessing",
+      "name": "Blessing stone",
+      "method": "fixed",
+      "price": 6,
+      "unit": "per stone"
+    },
+    {
+      "channel": "remnants",
+      "name": "Forgotten Remnant",
+      "method": "fixed",
+      "price": 6,
+      "unit": "per remnant"
+    },
+    {
+      "channel": "skillbooks",
+      "name": "Skill book",
+      "method": "auction",
+      "min_bid": 150,
+      "bid_step": 25,
+      "unit": "per book",
+      "max_qty": 1
+    },
+    {
+      "channel": "gear-mats-apply",
+      "name": "Gear material",
+      "method": "fixed",
+      "price": 4,
+      "unit": "per unit"
+    },
+    {
+      "channel": "potential",
+      "name": "Crystal of Liberation (Potential)",
+      "method": "fixed",
+      "price": 4,
+      "unit": "per crystal",
+      "max_qty": 20
+    },
+    {
+      "channel": "t3-gear-post",
+      "name": "Epic T3 gear",
+      "method": "auction",
+      "min_bid": 75,
+      "bid_step": 25
+    },
+    {
+      "channel": null,
+      "name": "Higher Arcane Scroll",
+      "method": "fixed",
+      "price": 2,
+      "unit": "per scroll"
+    },
+    {
+      "channel": "legend-scrolls",
+      "name": "Superior Arcane Scroll",
+      "method": "auction",
+      "min_bid": 25,
+      "bid_step": 25,
+      "unit": "per scroll"
+    },
+    {
+      "channel": null,
+      "name": "Master's Aircraft Toolbox",
+      "method": "fixed",
+      "price": 35,
+      "unit": "each"
+    },
+    {
+      "channel": null,
+      "name": "Essence of the Sky",
+      "method": "fixed",
+      "price": 25,
+      "unit": "each"
+    }
   ],
   "not_for_sale_guild_leader_only": [
-    "Legend accessories", "Legend pants", "Legend boots", "Legend helmet", "4th advancement items",
-    "T1/T2 codex", "Morion", "Guild coin", "Higherseal", "Blue aura stones", "Aura of Silent Manifestation", "Belt of Exaltation", "Necklace of Honor", "Essence of Curses", "Gold"
+    "Legend accessories",
+    "Legend pants",
+    "Legend boots",
+    "Legend helmet",
+    "4th advancement items",
+    "T1/T2 codex",
+    "Morion",
+    "Guild coin",
+    "Higherseal",
+    "Blue aura stones",
+    "Aura of Silent Manifestation",
+    "Belt of Exaltation",
+    "Necklace of Honor",
+    "Essence of Curses",
+    "Gold"
   ],
   "auction_rules": {
     "duration_hours": 24,
