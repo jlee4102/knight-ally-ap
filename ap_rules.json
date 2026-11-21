@@ -193,8 +193,9 @@
       "aliases": [
         "Orb of Winds"
       ],
-      "method": "fixed",
-      "price": 6,
+      "method": "auction",
+      "min_bid": 6,
+      "bid_step": 10,
       "unit": "per orb",
       "max_qty": 25
     },
@@ -205,7 +206,7 @@
         "Golden Cuirass Insignia Fragment"
       ],
       "method": "auction",
-      "min_bid": 5,
+      "min_bid": 10,
       "bid_step": 5,
       "unit": "per fragment"
     },
@@ -216,7 +217,7 @@
         "Golden Cape Insignia Fragment"
       ],
       "method": "auction",
-      "min_bid": 5,
+      "min_bid": 15,
       "bid_step": 5,
       "unit": "per fragment"
     },
@@ -238,7 +239,7 @@
         "[L] Arcane Scroll Selection Chest"
       ],
       "method": "auction",
-      "min_bid": 25,
+      "min_bid": 40,
       "bid_step": 25
     },
     {
@@ -309,7 +310,7 @@
         "Gear Crafting Material Selection Chest"
       ],
       "method": "auction",
-      "min_bid": 75,
+      "min_bid": 200,
       "bid_step": 25
     },
     {
@@ -321,7 +322,7 @@
         "Aura of Circulating Manifestation"
       ],
       "method": "auction",
-      "min_bid": 350,
+      "min_bid": 600,
       "bid_step": 25,
       "max_qty": 1
     },
@@ -336,7 +337,7 @@
       "channel": "blessing",
       "name": "Blessing stone",
       "method": "fixed",
-      "price": 6,
+      "price": 10,
       "unit": "per stone"
     },
     {
@@ -350,7 +351,7 @@
       "channel": "skillbooks",
       "name": "Skill book",
       "method": "auction",
-      "min_bid": 150,
+      "min_bid": 175,
       "bid_step": 25,
       "unit": "per book",
       "max_qty": 1
@@ -365,8 +366,9 @@
     {
       "channel": "potential",
       "name": "Crystal of Liberation (Potential)",
-      "method": "fixed",
-      "price": 4,
+      "method": "auction",
+      "min_bid": 4,
+      "bid_step": 10,
       "unit": "per crystal",
       "max_qty": 20
     },
@@ -381,7 +383,7 @@
       "channel": null,
       "name": "Higher Arcane Scroll",
       "method": "fixed",
-      "price": 2,
+      "price": 3,
       "unit": "per scroll"
     },
     {
@@ -395,8 +397,9 @@
     {
       "channel": null,
       "name": "Master's Aircraft Toolbox",
-      "method": "fixed",
-      "price": 35,
+      "method": "auction",
+      "min_bid": 35,
+      "bid_step": 25,
       "unit": "each"
     },
     {

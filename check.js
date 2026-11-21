@@ -270,8 +270,10 @@ check('a winner with no bid recorded is flagged',
        Winner: 'NC | Chielo'}).flags.length, 1);
 check('a known item priced under its rules minimum is flagged',
   bid({Item: 'Skill book', 'AP Price': '50', Status: 'Available'}).flags.length, 1);
+// Read the minimum out of the rules, so repricing the catalogue never fails this.
+const skillMin = String(itemCost(RULES.items.find(i => i.name === 'Skill book')));
 check('a known item priced at its minimum is fine',
-  bid({Item: 'Skill book', 'AP Price': '150', Status: 'Available'}).flags.length, 0);
+  bid({Item: 'Skill book', 'AP Price': skillMin, Status: 'Available'}).flags.length, 0);
 // The name is what Discord shows, so a stack carries its count there too.
 check('a stack written into the name comes back as a quantity',
   bid({Item: 'Skill book ×3', 'AP Price': '450', Status: 'Available'}).qty, 3);
