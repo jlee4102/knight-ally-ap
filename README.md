@@ -17,7 +17,7 @@ Balances and the roster come from a public Google Sheet, fetched as CSV straight
 
 Edit `ap_rules.json` and commit. That's the whole job.
 
-The page self-checks on load: a full week of activity must come to **1,086 AP** and scheduled-only to **575 AP**. If an edit moves either figure, a red banner appears at the top of the site telling you prices were set against the old number. That is intentional — don't suppress it, fix the prices.
+The page self-checks on load: no price or minimum bid may exceed one week of full activity, which it works out from the `events` block each time. If an edit pushes a price past it, a red banner appears at the top of the site. That is intentional — don't suppress it, fix the prices. The figure is deliberately not written down here or in the rules file, because it moves whenever an event rate does; `node check.js` prints it.
 
 ## Where the numbers come from
 

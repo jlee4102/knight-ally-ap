@@ -321,7 +321,7 @@ html{color-scheme:dark;background:#0e1017}body{margin:0}
   <header class="crest">
     <div class="tag"><span>Jollibee</span><span class="sep">/</span><span>102 Knight Ally</span><span class="sep">/</span><span>Union UDI</span></div>
     <h1>Activity Points<em>Show up. Earn. Claim the vault.</em></h1>
-    <p class="lede">Every Jollibee event you check in to pays AP. AP is the only currency for guild-storage loot — fixed-price claims and 24-hour auctions, one loot post a week after the Guild Dungeon run.</p>
+    <p class="lede">Every Jollibee event you check in to pays AP. AP is the only currency for guild-storage loot — mostly 24-hour auctions, with a few cheap staples at a fixed price, one loot post a week after the Guild Dungeon run.</p>
   </header>
 
   <div id="drift"></div>
@@ -907,7 +907,7 @@ function writePost(){
     L.push('', '__Auction \u2014 closes in ' + RULES.auction_rules.duration_hours + ' h__');
     for(const l of bids) L.push(line(l));
     L.push('Each stack is bid on separately. Highest bid wins and pays their own bid; '
-      + RULES.auction_rules.tiebreak + '. No bids and it relists at the minimum as fixed price.');
+      + RULES.auction_rules.tiebreak + '. No bids: ' + RULES.auction_rules.no_bids + '.');
   }
 
   const left = leftoverLines();

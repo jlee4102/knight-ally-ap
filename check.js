@@ -398,5 +398,25 @@ console.log('Handout day filter');
   check('every day still shows the undated row too', all.length, 4);
 }
 
+console.log('');
+console.log('Copy that quotes the rules');
+{
+  // The rules file says the one-week figure goes stale if restated. It had:
+  // the README claimed 1,086 against an actual 1,028.
+  const readme = require('fs').readFileSync(__dirname + '/README.md', 'utf8');
+  check('the README does not restate the one-week figure',
+    /full week of activity must come to \*\*[\d,]+ AP\*\*/.test(readme), false);
+  check('and it does not restate the scheduled-only figure either',
+    /\*\*575 AP\*\*/.test(readme), false);
+
+  // The post told members half the no-bid rule: it stopped before the part
+  // that says the item then goes to the guild leader.
+  const post = grab("if(bids.length){", "const left =");
+  check('the no-bid line is read from the rules, not retyped',
+    /RULES\.auction_rules\.no_bids/.test(post), true);
+  check('and nothing restates it by hand',
+    /relists at the minimum as fixed price/.test(post), false);
+}
+
 console.log(failed ? `\n${failed} check(s) failed` : '\nall checks passed');
 process.exit(failed ? 1 : 0);
