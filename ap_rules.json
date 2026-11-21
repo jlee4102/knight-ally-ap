@@ -228,7 +228,7 @@
         "Golden Gloves Insignia Fragment"
       ],
       "method": "auction",
-      "min_bid": 8,
+      "min_bid": 10,
       "bid_step": 5,
       "unit": "per fragment"
     },
@@ -322,7 +322,7 @@
         "Aura of Circulating Manifestation"
       ],
       "method": "auction",
-      "min_bid": 600,
+      "min_bid": 500,
       "bid_step": 25,
       "max_qty": 1
     },
@@ -344,14 +344,14 @@
       "channel": "remnants",
       "name": "Forgotten Remnant",
       "method": "fixed",
-      "price": 6,
+      "price": 10,
       "unit": "per remnant"
     },
     {
       "channel": "skillbooks",
       "name": "Skill book",
       "method": "auction",
-      "min_bid": 175,
+      "min_bid": 200,
       "bid_step": 25,
       "unit": "per book",
       "max_qty": 1
@@ -390,7 +390,7 @@
       "channel": "legend-scrolls",
       "name": "Superior Arcane Scroll",
       "method": "auction",
-      "min_bid": 25,
+      "min_bid": 40,
       "bid_step": 25,
       "unit": "per scroll"
     },
